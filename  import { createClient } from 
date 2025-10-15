@@ -1,0 +1,74 @@
+# Neon Database Configuration
+# Recommended for most uses (with connection pooling)
+NEON_NEON_NEON_NEON_DATABASE_URL="postgresql://neondb_owner:npg_PxBmQh8tAz1w@ep-crimson-tooth-adgo91h0-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
+# For uses requiring a connection without pgbouncer (for migrations)
+DATABASE_URL_UNPOOLED="postgresql://neondb_owner:npg_PxBmQh8tAz1w@ep-crimson-tooth-adgo91h0.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
+# Individual connection parameters
+PGHOST="ep-crimson-tooth-adgo91h0-pooler.c-2.us-east-1.aws.neon.tech"
+PGHOST_UNPOOLED="ep-crimson-tooth-adgo91h0.c-2.us-east-1.aws.neon.tech"
+PGUSER="neondb_owner"
+PGDATABASE="neondb"
+PGPASSWORD="npg_PxBmQh8tAz1w"
+
+# Vercel Postgres compatible variables
+POSTGRES_URL="mock://localhost"
+POSTGRES_USER="neondb_owner"
+POSTGRES_PASSWORD="npg_PxBmQh8tAz1w"
+POSTGRES_DATABASE="neondb"
+
+# Database Configuration (for direct database connection)
+DIRECT_URL="postgresql://user:password@localhost:5432/alazhar_school"
+
+# Neon Auth (Stack Auth) Configuration
+NEXT_PUBLIC_STACK_PROJECT_ID="c8083f20-8fea-490a-b60d-eac2ac59416b"
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY="pck_b1rvkh5sskcdbw855e7jkxcdjnahws2mqp1wn01v7yjz8"
+STACK_SECRET_SERVER_KEY="ssk_8m544mx4sztqdgvhhm2cjr3kyfasv4t2jgx7rhxx5psvg"
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://cbzoqazrubkitotcqawp.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8"
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+
+# App Configuration
+NEXT_PUBLIC_APP_NAME="Al-Azhar Online School"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Mock Data Mode (no external services required)
+USE_MOCK_DATA=true
+
+# Session Configuration
+SESSION_SECRET="your-session-secret"
+NEXTAUTH_SECRET="your-nextauth-secret"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Optional: Email Configuration (for notifications)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="Al-Azhar School <noreply@alazhar-school.com>"
+
+# Optional: Payment Gateway (for future implementation)
+STRIPE_PUBLIC_KEY=""
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
+
+# File Upload (Optional)
+NEXT_PUBLIC_MAX_FILE_SIZE="5242880"
+ALLOWED_FILE_TYPES=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+
+# Feature Flags
+NEXT_PUBLIC_ENABLE_PAYMENTS="false"
+NEXT_PUBLIC_ENABLE_CERTIFICATES="true"
+NEXT_PUBLIC_ENABLE_REPORTS="true"
+
+# System Settings
+NODE_ENV="production"
+
+# Note: Replace all placeholder values with your actual credentials
+# Never commit this file to version control
+NEXT_PUBLIC_SUPABASE_URL=https://cbzoqazrubkitotcqawp.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8

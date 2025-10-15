@@ -1,0 +1,185 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  TEACHER
+  PARENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  PAYPAL
+  BANK_TRANSFER
+  CREDIT_CARD
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      Role     @default(PARENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  teacher  Teacher?
+  children Student[] @relation("ParentChildren")
+  payments Payment[]
+
+  @@map("users")
+}
+
+model Teacher {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  bio         String?
+  ratePerHour Float   @default(0)
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students        Student[]
+  classTemplates  ClassTemplate[]
+  scheduleEntries ScheduleEntry[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id           String   @id @default(cuid())
+  name         String
+  parentUserId String
+  teacherId    String?
+  timezone     String   @default("UTC")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  parent          User              @relation("ParentChildren", fields: [parentUserId], references: [id])
+  teacher         Teacher?          @relation(fields: [teacherId], references: [id])
+  scheduleEntries ScheduleEntry[]
+  payments        Payment[]
+  certificates    Certificate[]
+
+  @@map("students")
+}
+
+model ClassTemplate {
+  id          String @id @default(cuid())
+  teacherId   String
+  dayOfWeek   Int    // 0 = Sunday, 1 = Monday, etc.
+  time        String // Format: "HH:MM"
+  durationMin Int    @default(60)
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@map("class_templates")
+}
+
+model ScheduleEntry {
+  id           String         @id @default(cuid())
+  studentId    String
+  teacherId    String
+  date         DateTime
+  durationMin  Int            @default(60)
+  status       ScheduleStatus @default(SCHEDULED)
+  attendanceId String?        @unique
+  paymentId    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relations
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher    Teacher     @relation(fields: [teacherId], references: [id])
+  attendance Attendance?
+  payment    Payment?    @relation(fields: [paymentId], references: [id])
+
+  @@map("schedule_entries")
+}
+
+model Attendance {
+  id              String           @id @default(cuid())
+  scheduleEntryId String           @unique
+  status          AttendanceStatus @default(PRESENT)
+  note            String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  scheduleEntry ScheduleEntry @relation(fields: [scheduleEntryId], references: [id], onDelete: Cascade)
+
+  @@map("attendance")
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  studentId String
+  userId    String
+  amount    Float
+  currency  String        @default("USD")
+  method    PaymentMethod @default(CASH)
+  status    PaymentStatus @default(PENDING)
+  reference String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  student         Student         @relation(fields: [studentId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  scheduleEntries ScheduleEntry[]
+
+  @@map("payments")
+}
+
+model Certificate {
+  id        String   @id @default(cuid())
+  studentId String
+  title     String
+  issuedAt  DateTime @default(now())
+  pdfUrl    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
+}
