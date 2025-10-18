@@ -354,6 +354,25 @@ const mockCourses: Course[] = [
 // Simulate network delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Helper function to sanitize student data - only include fields that exist in schema
+const sanitizeStudentData = (data: any): Partial<Student> => {
+  return {
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    age: data.age ? Number.parseInt(data.age) : undefined,
+    grade: data.grade,
+    subject: data.subject,
+    parent_name: data.parent_name,
+    parent_phone: data.parent_phone,
+    parent_email: data.parent_email,
+    address: data.address,
+    status: data.status || "active",
+    enrollment_date: data.enrollment_date || new Date().toISOString().split("T")[0],
+    notes: data.notes,
+  }
+}
+
 // Students API
 export const studentsAPI = {
   getAll: async (): Promise<Student[]> => {
@@ -398,28 +417,25 @@ export const studentsAPI = {
     }
   },
 
-  create: async (student: Partial<Student>): Promise<Student | null> => {
+  create: async (student: any): Promise<Student | null> => {
     await delay(400)
+
+    // Sanitize the data to only include valid fields
+    const sanitizedData = sanitizeStudentData(student)
+
     if (useMockData || !supabase) {
       const newStudent: Student = {
         id: String(mockStudents.length + 1),
-        name: student.name || "",
-        email: student.email || "",
-        phone: student.phone || "",
-        grade: student.grade || "",
-        subject: student.subject || "",
-        status: student.status || "active",
-        enrollment_date: student.enrollment_date || new Date().toISOString().split("T")[0],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        ...student,
-      }
+        ...sanitizedData,
+      } as Student
       mockStudents.push(newStudent)
       return newStudent
     }
 
     try {
-      const { data, error } = await supabase.from("students").insert([student]).select().single()
+      const { data, error } = await supabase.from("students").insert([sanitizedData]).select().single()
 
       if (error) {
         console.error("Error creating student in Supabase:", error)
@@ -433,19 +449,23 @@ export const studentsAPI = {
     }
   },
 
-  update: async (id: string, updates: Partial<Student>): Promise<Student | null> => {
+  update: async (id: string, updates: any): Promise<Student | null> => {
     await delay(400)
+
+    // Sanitize the data
+    const sanitizedData = sanitizeStudentData(updates)
+
     if (useMockData || !supabase) {
       const index = mockStudents.findIndex((s) => s.id === id)
       if (index !== -1) {
-        mockStudents[index] = { ...mockStudents[index], ...updates, updated_at: new Date().toISOString() }
+        mockStudents[index] = { ...mockStudents[index], ...sanitizedData, updated_at: new Date().toISOString() }
         return mockStudents[index]
       }
       return null
     }
 
     try {
-      const { data, error } = await supabase.from("students").update(updates).eq("id", id).select().single()
+      const { data, error } = await supabase.from("students").update(sanitizedData).eq("id", id).select().single()
 
       if (error) {
         console.error("Error updating student in Supabase:", error)
