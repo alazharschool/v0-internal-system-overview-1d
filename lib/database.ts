@@ -336,3 +336,23 @@ export const dashboardAPI = {
     }).then(res => res.json());
   },
 };
+// ✅ Temporary mock API for courses to avoid import errors
+export const coursesAPI = {
+  async getAllCourses() {
+    // بيانات تجريبية مؤقتة لحين ربط قاعدة البيانات
+    return [
+      { id: 1, name: "تجويد 1", teacher: "أ. محمد", students: 12 },
+      { id: 2, name: "تحفيظ جزء عمّ", teacher: "أ. أحمد", students: 8 },
+    ]
+  },
+
+  async addCourse(course: any) {
+    console.log("Adding course:", course)
+    return { success: true, course }
+  },
+
+  async deleteCourse(id: number) {
+    console.log("Deleting course with id:", id)
+    return { success: true }
+  },
+}
