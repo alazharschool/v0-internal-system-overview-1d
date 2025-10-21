@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { studentsAPI, type Student } from "@/lib/database"
 import { useToast } from "@/components/ui/use-toast"
+import { toastMessages } from "@/utils/toast-messages"
 
 interface EditStudentModalProps {
   isOpen: boolean
@@ -71,19 +72,25 @@ export function EditStudentModal({ isOpen, onClose, onSuccess, student }: EditSt
       const result = await studentsAPI.update(student.id, updateData)
 
       if (result) {
+        toast({
+          title: toastMessages.student.updateSuccess.title,
+          description: toastMessages.student.updateSuccess.description,
+          className: "bg-green-50 border-green-200",
+        })
         onSuccess?.()
+        onClose()
       } else {
         toast({
-          title: "Error",
-          description: "Failed to update student. Please try again.",
+          title: toastMessages.student.updateError.title,
+          description: toastMessages.student.updateError.description,
           variant: "destructive",
         })
       }
     } catch (error) {
       console.error("Error updating student:", error)
       toast({
-        title: "Error",
-        description: "Failed to update student. Please try again.",
+        title: toastMessages.student.updateError.title,
+        description: toastMessages.student.updateError.description,
         variant: "destructive",
       })
     } finally {

@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { AddStudentModal } from "@/components/modals/add-student-modal"
 import { studentsAPI, type Student } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
+import { toastMessages } from "@/utils/toast-messages"
 
 export default function StudentsPage() {
   const router = useRouter()
@@ -75,14 +76,15 @@ export default function StudentsPage() {
       await loadStudents()
       setIsAddModalOpen(false)
       toast({
-        title: "Success",
-        description: "Student added successfully",
+        title: toastMessages.student.addSuccess.title,
+        description: toastMessages.student.addSuccess.description,
+        className: "bg-green-50 border-green-200",
       })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to add student",
+        title: toastMessages.student.addError.title,
+        description: toastMessages.student.addError.description,
       })
     }
   }
@@ -249,9 +251,11 @@ export default function StudentsPage() {
                         {student.enrollment_date ? new Date(student.enrollment_date).toLocaleDateString() : "N/A"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/students/${student.id}`)}>
-                          View Details
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/students/${student.id}`)}>
+                            View Details
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

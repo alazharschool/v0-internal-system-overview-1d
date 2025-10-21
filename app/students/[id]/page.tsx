@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   ArrowLeft,
@@ -20,10 +19,14 @@ import {
   Clock,
   CheckCircle,
   UserX,
+  Edit,
 } from "lucide-react"
 import { studentsAPI, classesAPI, type Student, type Class } from "@/lib/database"
 import { formatEgyptTime, formatStudentTime, getDayName } from "@/utils/time-format"
 import { useToast } from "@/hooks/use-toast"
+import { EditClassModal } from "@/components/modals/edit-class-modal"
+import { EditStudentModal } from "@/components/modals/edit-student-modal"
+import { toastMessages } from "@/utils/toast-messages"
 
 interface MonthlyStats {
   total_classes: number
@@ -49,6 +52,8 @@ export default function StudentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(new Date())
   const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({})
+  const [editingStudent, setEditingStudent] = useState(false)
+  const [editingClass, setEditingClass] = useState<Class | null>(null)
 
   useEffect(() => {
     loadStudentData()
@@ -129,14 +134,15 @@ export default function StudentDetailPage() {
       await classesAPI.update(classId, { status: newStatus as any })
       await loadStudentData()
       toast({
-        title: "Success",
-        description: "Class status updated successfully",
+        title: toastMessages.class.statusUpdated.title,
+        description: toastMessages.class.statusUpdated.description,
+        className: "bg-green-50 border-green-200",
       })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to update class status",
+        title: "❌ خطأ",
+        description: "فشل تحديث حالة الحصة",
       })
     }
   }
@@ -145,16 +151,21 @@ export default function StudentDetailPage() {
     try {
       await classesAPI.update(classId, { notes: editingNotes[classId] })
       toast({
-        title: "Success",
-        description: "Notes updated successfully",
+        title: "✅ تم تحديث الملاحظات",
+        description: "تم حفظ الملاحظات بنجاح",
+        className: "bg-green-50 border-green-200",
       })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to update notes",
+        title: "❌ خطأ",
+        description: "فشل تحديث الملاحظات",
       })
     }
+  }
+
+  const handleEditClass = (classItem: Class) => {
+    setEditingClass(classItem)
   }
 
   const navigateMonth = (direction: "prev" | "next") => {
@@ -196,13 +207,17 @@ export default function StudentDetailPage() {
   return (
     <div className="p-6 space-y-6" dir="ltr">
       {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.push("/students")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Students
         </Button>
         <Button variant="outline" onClick={() => router.push("/")}>
           Dashboard
+        </Button>
+        <Button onClick={() => setEditingStudent(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Student Info
         </Button>
       </div>
 
@@ -456,28 +471,10 @@ export default function StudentDetailPage() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Textarea
-                            value={editingNotes[classItem.id] || ""}
-                            onChange={(e) =>
-                              setEditingNotes({
-                                ...editingNotes,
-                                [classItem.id]: e.target.value,
-                              })
-                            }
-                            placeholder="Add notes..."
-                            className="min-w-[200px]"
-                            rows={2}
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleNotesUpdate(classItem.id)}
-                            disabled={editingNotes[classItem.id] === classItem.notes}
-                          >
-                            Save
-                          </Button>
-                        </div>
+                      <TableCell className="flex gap-2 items-center">
+                        <Button size="sm" variant="outline" onClick={() => handleEditClass(classItem)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -487,6 +484,24 @@ export default function StudentDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modals */}
+      <EditStudentModal
+        isOpen={editingStudent}
+        onClose={() => setEditingStudent(false)}
+        onSuccess={() => loadStudentData()}
+        student={student!}
+      />
+
+      <EditClassModal
+        isOpen={!!editingClass}
+        onClose={() => setEditingClass(null)}
+        onSuccess={() => {
+          loadStudentData()
+          setEditingClass(null)
+        }}
+        classItem={editingClass!}
+      />
     </div>
   )
 }
