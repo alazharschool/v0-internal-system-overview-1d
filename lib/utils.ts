@@ -66,3 +66,25 @@ export function getStatusColor(status: string) {
       return 'bg-gray-300 text-black';
   }
 }
+export function getStatusText(status: string): string {
+  switch (status) {
+    case "active":
+      return "نشط"
+    case "inactive":
+      return "غير نشط"
+    case "graduated":
+      return "متخرج"
+    case "completed":
+      return "مكتمل"
+    case "paused":
+      return "موقوف مؤقتًا"
+    case "scheduled":
+      return "مجدول"
+    case "cancelled":
+      return "ملغي"
+    case "no_show":
+      return "لم يحضر"
+    default:
+      return status || "غير محدد"
+  }
+}
