@@ -104,3 +104,32 @@ export function Sidebar({ className }: SidebarProps) {
     </div>
   )
 }
+
+export function MobileSidebar({ className }: SidebarProps) {
+  const pathname = usePathname()
+
+  return (
+    <div className={cn("pb-12 space-y-4 md:hidden", className)}>
+      <div className="py-2">
+        <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">القائمة الرئيسية</h2>
+        <div className="space-y-1">
+          {routes.map((route) => (
+            <Link
+              key={route.href}
+              href={route.href}
+              className={cn(
+                "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-primary hover:bg-primary/10 rounded-lg transition",
+                pathname === route.href ? "text-primary bg-primary/10" : "text-muted-foreground",
+              )}
+            >
+              <div className="flex items-center flex-1">
+                <route.icon className={cn("h-5 w-5 ml-3", route.color)} />
+                {route.label}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

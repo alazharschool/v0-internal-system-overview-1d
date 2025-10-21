@@ -204,6 +204,42 @@ export function generateTimeSlots(startHour: number, endHour: number, intervalMi
   return slots
 }
 
+export function generateTimeSlots12Hour(startHour: number, endHour: number, intervalMinutes: number): string[] {
+  const slots: string[] = []
+
+  try {
+    if (
+      typeof startHour !== "number" ||
+      typeof endHour !== "number" ||
+      typeof intervalMinutes !== "number" ||
+      startHour < 0 ||
+      startHour > 23 ||
+      endHour < 0 ||
+      endHour > 23 ||
+      intervalMinutes <= 0
+    ) {
+      return slots
+    }
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += intervalMinutes) {
+        const period = hour >= 12 ? "PM" : "AM"
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        const timeString = `${displayHour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")} ${period}`
+        slots.push(timeString)
+      }
+    }
+
+    const period = endHour >= 12 ? "PM" : "AM"
+    const displayHour = endHour === 0 ? 12 : endHour > 12 ? endHour - 12 : endHour
+    slots.push(`${displayHour.toString().padStart(2, "0")}:00 ${period}`)
+  } catch (error) {
+    console.error("Error generating 12-hour time slots:", error)
+  }
+
+  return slots
+}
+
 export function addMinutesToTime(time: string, minutes: number): string {
   try {
     if (!time || typeof time !== "string" || typeof minutes !== "number") {
