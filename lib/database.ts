@@ -322,3 +322,17 @@ export const trialClassesAPI = {
 }
 
 export default supabase
+export const dashboardAPI = {
+  getStudents: async () => {
+    // مثال: هنا تحط الكود اللي بيجيب الطلاب
+    return await fetch('/api/students').then(res => res.json());
+  },
+
+  addStudent: async (data: any) => {
+    return await fetch('/api/students', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
+    }).then(res => res.json());
+  },
+};
