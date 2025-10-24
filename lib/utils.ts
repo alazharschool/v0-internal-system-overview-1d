@@ -67,3 +67,17 @@ export function getStatusText(status: string): string {
       return "Unknown";
   }
 }
+export function getStatusColor(status: string): string {
+  switch (status) {
+    case "active":
+      return "green";
+    case "inactive":
+      return "gray";
+    case "pending":
+      return "orange";
+    case "completed":
+      return "blue";
+    default:
+      return "gray";
+  }
+}
