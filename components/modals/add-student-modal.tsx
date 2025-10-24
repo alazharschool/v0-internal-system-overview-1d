@@ -122,3 +122,4 @@ const AddStudentModal: React.FC = () => {
 }
 
 export default AddStudentModal
+export { AddStudentModal };
