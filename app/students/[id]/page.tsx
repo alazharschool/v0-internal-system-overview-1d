@@ -26,6 +26,7 @@ import { formatEgyptTime, formatStudentTime, getDayName } from "@/utils/time-for
 import { useToast } from "@/hooks/use-toast"
 import { EditClassModal } from "@/components/modals/edit-class-modal"
 import { EditStudentModal } from "@/components/modals/edit-student-modal"
+import { ScheduleClassModal } from "@/components/modals/schedule-class-modal"
 import { toastMessages } from "@/utils/toast-messages"
 
 interface MonthlyStats {
@@ -54,6 +55,7 @@ export default function StudentDetailPage() {
   const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({})
   const [editingStudent, setEditingStudent] = useState(false)
   const [editingClass, setEditingClass] = useState<Class | null>(null)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
 
   useEffect(() => {
     loadStudentData()
@@ -207,13 +209,17 @@ export default function StudentDetailPage() {
   return (
     <div className="p-6 space-y-6" dir="ltr">
       {/* Header with Back Button */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <Button variant="outline" onClick={() => router.push("/students")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Students
         </Button>
         <Button variant="outline" onClick={() => router.push("/")}>
           Dashboard
+        </Button>
+        <Button onClick={() => setScheduleModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+          <Calendar className="h-4 w-4 mr-2" />
+          إضافة حصة جديدة
         </Button>
         <Button onClick={() => setEditingStudent(true)} className="bg-blue-600 hover:bg-blue-700">
           <Edit className="h-4 w-4 mr-2" />
@@ -390,14 +396,14 @@ export default function StudentDetailPage() {
       {/* Monthly Classes Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle>Class Schedule</CardTitle>
               <CardDescription>
                 {selectedMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
                 <ChevronLeft className="h-4 w-4" />
                 Previous Month
@@ -413,7 +419,7 @@ export default function StudentDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -423,7 +429,7 @@ export default function StudentDetailPage() {
                   <TableHead>Student Time</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -501,6 +507,14 @@ export default function StudentDetailPage() {
           setEditingClass(null)
         }}
         classItem={editingClass!}
+      />
+
+      <ScheduleClassModal
+        isOpen={scheduleModalOpen}
+        onClose={() => {
+          setScheduleModalOpen(false)
+          loadStudentData()
+        }}
       />
     </div>
   )

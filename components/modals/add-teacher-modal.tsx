@@ -1,81 +1,105 @@
 "use client"
+
+import type React from "react"
+
 import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { teachersAPI } from "@/lib/database"
-import { Plus } from "lucide-react"
+import { Plus, X, LinkIcon } from "lucide-react"
 
 interface AddTeacherModalProps {
-  onTeacherAdded?: () => void
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
 }
 
-export function AddTeacherModal({ onTeacherAdded }: AddTeacherModalProps) {
-  const [open, setOpen] = useState(false)
+export function AddTeacherModal({ isOpen, onClose, onSuccess }: AddTeacherModalProps) {
   const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      subject: "",
-      hourly_rate: "",
-      status: "active",
-      bio: "",
-      zoom_link: "",
-    },
+  const [subjects, setSubjects] = useState<string[]>([""])
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    hourly_rate: "",
+    bio: "",
+    zoom_link: "",
+    status: "active" as const,
   })
+  const { toast } = useToast()
 
-  const onSubmit = async (formData: any) => {
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const addSubject = () => {
+    setSubjects((prev) => [...prev, ""])
+  }
+
+  const updateSubject = (index: number, value: string) => {
+    setSubjects((prev) => prev.map((subject, i) => (i === index ? value : subject)))
+  }
+
+  const removeSubject = (index: number) => {
+    if (subjects.length > 1) {
+      setSubjects((prev) => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setLoading(true)
+
     try {
-      const result = await teachersAPI.create({
+      const filteredSubjects = subjects.filter((s) => s.trim() !== "")
+      const teacherData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        subject: formData.subject,
-        subjects: [formData.subject],
-        hourly_rate: Number.parseFloat(formData.hourly_rate) || 100,
+        subject: formData.subject || filteredSubjects[0] || "",
+        subjects: filteredSubjects.length > 0 ? filteredSubjects : [formData.subject],
+        hourly_rate: Number.parseFloat(formData.hourly_rate) || 0,
         join_date: new Date().toISOString().split("T")[0],
         status: formData.status,
         bio: formData.bio,
         zoom_link: formData.zoom_link,
+      }
+
+      await teachersAPI.create(teacherData)
+
+      toast({
+        title: "Success",
+        description: "Teacher added successfully!",
       })
 
-      if (result) {
-        toast({
-          title: "✅ تم بنجاح!",
-          description: `تم إضافة المعلم ${formData.name} بنجاح`,
-          duration: 3000,
-        })
-        reset()
-        setOpen(false)
-        onTeacherAdded?.()
-      } else {
-        toast({
-          title: "❌ حدث خطأ",
-          description: "فشل إضافة المعلم",
-          variant: "destructive",
-          duration: 3000,
-        })
-      }
+      onSuccess()
+      onClose()
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        hourly_rate: "",
+        bio: "",
+        zoom_link: "",
+        status: "active",
+      })
+      setSubjects([""])
     } catch (error) {
       console.error("Error adding teacher:", error)
       toast({
-        title: "❌ خطأ",
-        description: "حدث خطأ أثناء إضافة المعلم",
+        title: "Error",
+        description: "Failed to add teacher. Please try again.",
         variant: "destructive",
-        duration: 3000,
       })
     } finally {
       setLoading(false)
@@ -83,104 +107,208 @@ export function AddTeacherModal({ onTeacherAdded }: AddTeacherModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          إضافة معلم جديد
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>إضافة معلم جديد</DialogTitle>
+          <DialogTitle>Add New Teacher</DialogTitle>
+          <DialogDescription>Enter the teacher's information to add them to the system.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* الاسم */}
-            <div className="space-y-2">
-              <Label htmlFor="name">الاسم الكامل *</Label>
-              <Input id="name" placeholder="اسم المعلم" {...register("name", { required: "الاسم مطلوب" })} />
-              {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
-            </div>
 
-            {/* البريد الإلكتروني */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-800">Basic Information</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="Enter teacher's full name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="teacher@example.com"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone *</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  placeholder="+20-100-123-4567"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hourly_rate">Hourly Rate ($) *</Label>
+                <Input
+                  id="hourly_rate"
+                  type="number"
+                  step="0.01"
+                  value={formData.hourly_rate}
+                  onChange={(e) => handleInputChange("hourly_rate", e.target.value)}
+                  placeholder="150.00"
+                  min="0"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Zoom Link */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+              <LinkIcon className="w-4 h-4" />
+              Zoom Meeting Link
+            </h3>
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني *</Label>
+              <Label htmlFor="zoom_link">Zoom Link (Optional)</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="البريد الإلكتروني"
-                {...register("email", { required: "البريد الإلكتروني مطلوب" })}
+                id="zoom_link"
+                type="url"
+                value={formData.zoom_link}
+                onChange={(e) => handleInputChange("zoom_link", e.target.value)}
+                placeholder="https://zoom.us/j/1234567890"
               />
-              {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+              <p className="text-xs text-slate-500">Personal Zoom meeting room link for online classes</p>
             </div>
+          </div>
 
-            {/* الهاتف */}
+          {/* Primary Subject */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-800">Primary Subject</h3>
             <div className="space-y-2">
-              <Label htmlFor="phone">رقم الهاتف *</Label>
-              <Input id="phone" placeholder="رقم الهاتف" {...register("phone", { required: "رقم الهاتف مطلوب" })} />
-              {errors.phone && <p className="text-sm text-red-500">{errors.phone.message}</p>}
-            </div>
-
-            {/* المادة */}
-            <div className="space-y-2">
-              <Label htmlFor="subject">المادة *</Label>
-              <Input id="subject" placeholder="المادة" {...register("subject", { required: "المادة مطلوبة" })} />
-              {errors.subject && <p className="text-sm text-red-500">{errors.subject.message}</p>}
-            </div>
-
-            {/* سعر الساعة */}
-            <div className="space-y-2">
-              <Label htmlFor="hourly_rate">سعر الساعة *</Label>
-              <Input
-                id="hourly_rate"
-                type="number"
-                placeholder="سعر الساعة"
-                {...register("hourly_rate", { required: "سعر الساعة مطلوب" })}
-              />
-              {errors.hourly_rate && <p className="text-sm text-red-500">{errors.hourly_rate.message}</p>}
-            </div>
-
-            {/* الحالة */}
-            <div className="space-y-2">
-              <Label htmlFor="status">الحالة</Label>
-              <Select defaultValue="active">
-                <SelectTrigger id="status">
-                  <SelectValue />
+              <Label htmlFor="subject">Primary Subject *</Label>
+              <Select value={formData.subject} onValueChange={(value) => handleInputChange("subject", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select primary subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">نشط</SelectItem>
-                  <SelectItem value="inactive">غير نشط</SelectItem>
+                  <SelectItem value="Quran Memorization">Quran Memorization</SelectItem>
+                  <SelectItem value="Arabic Language">Arabic Language</SelectItem>
+                  <SelectItem value="Islamic Studies">Islamic Studies</SelectItem>
+                  <SelectItem value="Hadith Studies">Hadith Studies</SelectItem>
+                  <SelectItem value="Fiqh">Fiqh</SelectItem>
+                  <SelectItem value="Tafsir">Tafsir</SelectItem>
+                  <SelectItem value="Tajweed">Tajweed</SelectItem>
+                  <SelectItem value="Aqeedah">Aqeedah</SelectItem>
+                  <SelectItem value="Grammar">Grammar</SelectItem>
+                  <SelectItem value="Morphology">Morphology</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* رابط Zoom */}
-          <div className="space-y-2">
-            <Label htmlFor="zoom_link">رابط Zoom</Label>
-            <Input id="zoom_link" type="url" placeholder="https://zoom.us/j/..." {...register("zoom_link")} />
+          {/* Additional Subjects */}
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800 text-lg">Additional Subjects (Optional)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {subjects.map((subject, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Select value={subject} onValueChange={(value) => updateSubject(index, value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select additional subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Quran Memorization">Quran Memorization</SelectItem>
+                        <SelectItem value="Arabic Language">Arabic Language</SelectItem>
+                        <SelectItem value="Islamic Studies">Islamic Studies</SelectItem>
+                        <SelectItem value="Hadith Studies">Hadith Studies</SelectItem>
+                        <SelectItem value="Fiqh">Fiqh</SelectItem>
+                        <SelectItem value="Tafsir">Tafsir</SelectItem>
+                        <SelectItem value="Tajweed">Tajweed</SelectItem>
+                        <SelectItem value="Aqeedah">Aqeedah</SelectItem>
+                        <SelectItem value="Grammar">Grammar</SelectItem>
+                        <SelectItem value="Morphology">Morphology</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {subjects.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeSubject(index)}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addSubject}
+                className="w-full border-green-300 text-green-700 hover:bg-green-100 bg-transparent"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Another Subject
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Status */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-800">Status</h3>
+            <div className="space-y-2">
+              <Label htmlFor="status">Teacher Status</Label>
+              <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value as any)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* السيرة الذاتية */}
-          <div className="space-y-2">
-            <Label htmlFor="bio">السيرة الذاتية</Label>
-            <textarea
-              id="bio"
-              placeholder="السيرة الذاتية والمؤهلات"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              {...register("bio")}
-            />
+          {/* Bio */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-800">Additional Information</h3>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Biography</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => handleInputChange("bio", e.target.value)}
+                placeholder="Brief description of the teacher's background, qualifications, and teaching experience..."
+                rows={4}
+              />
+            </div>
           </div>
 
-          {/* الأزرار */}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              إلغاء
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "جاري الإضافة..." : "إضافة المعلم"}
+            <Button
+              type="submit"
+              disabled={loading || !formData.name || !formData.email || !formData.subject || !formData.phone}
+            >
+              {loading ? "Adding..." : "Add Teacher"}
             </Button>
           </div>
         </form>

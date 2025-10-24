@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
+    "@mui/material": "7.3.4",
     "@prisma/client": "latest",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -63,7 +64,7 @@
     "@supabase/supabase-js": "latest",
     "@tanstack/react-query": "^5.8.4",
     "@tanstack/react-table": "^8.10.7",
-    "antd": "5.27.5",
+    "antd": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^0.2.0",
@@ -75,7 +76,7 @@
     "prisma": "latest",
     "react": "^18",
     "react-dom": "^18",
-    "react-hook-form": "latest",
+    "react-hook-form": "^7.48.2",
     "recharts": "latest",
     "sonner": "^1.2.4",
     "tailwind-merge": "^2.5.5",
@@ -106,7 +107,7 @@
     "typescript": "^5"
   },
   "engines": {
-    "node": "18.x",
-    "pnpm": "9.x"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
