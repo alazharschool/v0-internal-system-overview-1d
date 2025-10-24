@@ -53,33 +53,17 @@ export function slugify(text: string): string {
     .replace(/ +/g, "-")
 }
 // دالة ترجع اللون بناءً على الحالة
-export function getStatusColor(status: string): string {
-  switch (status) {
-    case "active":
-      return "green";
-    case "inactive":
-      return "gray";
-    case "pending":
-      return "orange";
-    case "completed":
-      return "blue";
-    default:
-      return "gray";
-  }
-}
-
-// دالة ترجع النص المناسب للحالة
 export function getStatusText(status: string): string {
   switch (status) {
     case "active":
-      return "نشط";
+      return "Active";
     case "inactive":
-      return "غير نشط";
+      return "Inactive";
     case "pending":
-      return "قيد الانتظار";
+      return "Pending";
     case "completed":
-      return "مكتمل";
+      return "Completed";
     default:
-      return "غير معروف";
+      return "Unknown";
   }
 }
