@@ -81,8 +81,8 @@ importers:
         specifier: ^8.10.7
         version: 8.10.7(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       antd:
-        specifier: latest
-        version: 5.27.6(date-fns@2.30.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
+        specifier: 5.27.5
+        version: 5.27.5(date-fns@2.30.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1908,8 +1908,8 @@ packages:
     resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
     engines: {node: '>=12'}
 
-  antd@5.27.6:
-    resolution: {integrity: sha512-70HrjVbzDXvtiUQ5MP1XdNudr/wGAk9Ivaemk6f36yrAeJurJSmZ8KngOIilolLRHdGuNc6/Vk+4T1OZpSjpag==}
+  antd@5.27.5:
+    resolution: {integrity: sha512-Ehd9mqtHvJ1clon1yJ/1BTV6eX/3SH2YXZZPTHUk8XdzXFwUioI+Lht47s+MaHIUBY77RnZrmtKwwR+VVu0l7A==}
     peerDependencies:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
@@ -5730,7 +5730,7 @@ snapshots:
 
   ansi-styles@6.2.3: {}
 
-  antd@5.27.6(date-fns@2.30.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0):
+  antd@5.27.5(date-fns@2.30.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0):
     dependencies:
       '@ant-design/colors': 7.2.1
       '@ant-design/cssinjs': 1.24.0(react-dom@18.0.0(react@18.0.0))(react@18.0.0)

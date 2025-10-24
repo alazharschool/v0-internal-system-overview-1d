@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -17,9 +16,10 @@ import { Loader2, CheckCircle } from "lucide-react"
 interface ScheduleClassModalProps {
   isOpen: boolean
   onClose: () => void
+  studentId?: string
 }
 
-export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps) {
+export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClassModalProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [students, setStudents] = useState<Student[]>([])
@@ -28,7 +28,7 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
-    student_id: "",
+    student_id: studentId || "",
     teacher_id: "",
     subject: "",
     class_date: "",
@@ -46,12 +46,13 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
   }, [isOpen])
 
   useEffect(() => {
-    // Filter teachers based on selected subject
     if (formData.subject) {
-      const filtered = teachers.filter((teacher) => teacher.subjects.includes(formData.subject))
+      const filtered = teachers.filter((teacher) =>
+        teacher.subjects.some((subj) => subj.toLowerCase() === formData.subject.toLowerCase()),
+      )
       setFilteredTeachers(filtered)
     } else {
-      setFilteredTeachers(teachers)
+      setFilteredTeachers([])
     }
   }, [formData.subject, teachers])
 
@@ -64,14 +65,39 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
       console.error("Error loading data:", error)
       toast({
         title: "Error",
-        description: "Failed to load students and teachers.",
+        description: "Failed to load students and teachers",
         variant: "destructive",
       })
     }
   }
 
+  const handleStudentChange = (newStudentId: string) => {
+    const student = students.find((s) => s.id === newStudentId)
+    setFormData((prev) => ({
+      ...prev,
+      student_id: newStudentId,
+      subject: student?.subject || "",
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (
+      !formData.student_id ||
+      !formData.teacher_id ||
+      !formData.subject ||
+      !formData.class_date ||
+      !formData.start_time
+    ) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -99,10 +125,9 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
           description: "Class scheduled successfully!",
         })
 
-        // Reset form after a delay
         setTimeout(() => {
           setFormData({
-            student_id: "",
+            student_id: studentId || "",
             teacher_id: "",
             subject: "",
             class_date: "",
@@ -113,8 +138,6 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
           setSuccess(false)
           onClose()
         }, 1500)
-      } else {
-        throw new Error("Failed to schedule class")
       }
     } catch (error) {
       console.error("Error scheduling class:", error)
@@ -126,19 +149,6 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleStudentChange = (studentId: string) => {
-    const student = students.find((s) => s.id === studentId)
-    setFormData((prev) => ({
-      ...prev,
-      student_id: studentId,
-      subject: student?.subject || "",
-    }))
   }
 
   if (success) {
@@ -160,7 +170,7 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Schedule New Class</DialogTitle>
-          <DialogDescription>Schedule a class session for a student with a teacher.</DialogDescription>
+          <DialogDescription>Schedule a class session for a student with a teacher</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -183,28 +193,34 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
 
             <div className="space-y-2">
               <Label htmlFor="subject">Subject *</Label>
-              <Select value={formData.subject} onValueChange={(value) => handleInputChange("subject", value)}>
+              <Select
+                value={formData.subject}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, subject: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Mathematics">Mathematics</SelectItem>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Science">Science</SelectItem>
-                  <SelectItem value="Physics">Physics</SelectItem>
-                  <SelectItem value="Chemistry">Chemistry</SelectItem>
-                  <SelectItem value="Biology">Biology</SelectItem>
-                  <SelectItem value="History">History</SelectItem>
-                  <SelectItem value="Geography">Geography</SelectItem>
-                  <SelectItem value="Literature">Literature</SelectItem>
-                  <SelectItem value="Computer Science">Computer Science</SelectItem>
+                  <SelectItem value="Quran Memorization">Quran Memorization</SelectItem>
+                  <SelectItem value="Arabic Language">Arabic Language</SelectItem>
+                  <SelectItem value="Islamic Studies">Islamic Studies</SelectItem>
+                  <SelectItem value="Hadith Studies">Hadith Studies</SelectItem>
+                  <SelectItem value="Fiqh">Fiqh</SelectItem>
+                  <SelectItem value="Tafsir">Tafsir</SelectItem>
+                  <SelectItem value="Tajweed">Tajweed</SelectItem>
+                  <SelectItem value="Aqeedah">Aqeedah</SelectItem>
+                  <SelectItem value="Grammar">Grammar</SelectItem>
+                  <SelectItem value="Morphology">Morphology</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="teacher">Teacher *</Label>
-              <Select value={formData.teacher_id} onValueChange={(value) => handleInputChange("teacher_id", value)}>
+              <Select
+                value={formData.teacher_id}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, teacher_id: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a teacher" />
                 </SelectTrigger>
@@ -224,7 +240,7 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
                 id="class_date"
                 type="date"
                 value={formData.class_date}
-                onChange={(e) => handleInputChange("class_date", e.target.value)}
+                onChange={(e) => setFormData((prev) => ({ ...prev, class_date: e.target.value }))}
                 min={new Date().toISOString().split("T")[0]}
                 required
               />
@@ -232,7 +248,10 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
 
             <div className="space-y-2">
               <Label htmlFor="start_time">Start Time *</Label>
-              <Select value={formData.start_time} onValueChange={(value) => handleInputChange("start_time", value)}>
+              <Select
+                value={formData.start_time}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, start_time: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select start time" />
                 </SelectTrigger>
@@ -252,7 +271,10 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
 
             <div className="space-y-2">
               <Label htmlFor="duration">Duration (minutes) *</Label>
-              <Select value={formData.duration} onValueChange={(value) => handleInputChange("duration", value)}>
+              <Select
+                value={formData.duration}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, duration: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -272,17 +294,17 @@ export function ScheduleClassModal({ isOpen, onClose }: ScheduleClassModalProps)
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => handleInputChange("notes", e.target.value)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
               placeholder="Any additional notes for this class session..."
               rows={3}
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Schedule Class
             </Button>
