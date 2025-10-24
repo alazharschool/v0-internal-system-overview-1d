@@ -52,3 +52,65 @@ export function slugify(text: string): string {
     .replace(/[^\w ]+/g, "")
     .replace(/ +/g, "-")
 }
+// دالة ترجع اللون بناءً على الحالة
+export function getStatusColor(status: string): string {
+  switch (status) {
+    case "active":
+      return "green";
+    case "inactive":
+      return "gray";
+    case "pending":
+      return "orange";
+    case "completed":
+      return "blue";
+    default:
+      return "gray";
+  }
+}
+
+// دالة ترجع النص المناسب للحالة
+export function getStatusText(status: string): string {
+  switch (status) {
+    case "active":
+      return "نشط";
+    case "inactive":
+      return "غير نشط";
+    case "pending":
+      return "قيد الانتظار";
+    case "completed":
+      return "مكتمل";
+    default:
+      return "غير معروف";
+  }
+}
+// 🔸 إضافة دالة لتحديد اللون حسب الحالة
+export function getStatusColor(status: string): string {
+  switch (status) {
+    case "active":
+      return "green";
+    case "inactive":
+      return "gray";
+    case "pending":
+      return "orange";
+    case "completed":
+      return "blue";
+    default:
+      return "gray";
+  }
+}
+
+// 🔸 إضافة دالة لتحديد النص حسب الحالة
+export function getStatusText(status: string): string {
+  switch (status) {
+    case "active":
+      return "نشط";
+    case "inactive":
+      return "غير نشط";
+    case "pending":
+      return "قيد الانتظار";
+    case "completed":
+      return "مكتمل";
+    default:
+      return "غير معروف";
+  }
+}
