@@ -16,17 +16,15 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { studentsAPI } from "@/lib/database"
-import { sanitizeStudentData } from "@/utils/sanitize"
 import { Plus, Loader2 } from "lucide-react"
 
 interface AddStudentModalProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  onSubmit?: (studentData: any) => void
+  onStudentAdded?: () => void
 }
 
-export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStudentModalProps) {
+export function AddStudentModal({ open = false, onOpenChange, onStudentAdded }: AddStudentModalProps) {
   const [isOpen, setIsOpen] = useState(open)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -49,31 +47,51 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
     onOpenChange?.(newOpen)
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const sanitizedData = sanitizeStudentData({
-        ...formData,
+      // Validate required fields
+      if (!formData.name || !formData.email || !formData.phone) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields (Name, Email, Phone)",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
+      }
+
+      const studentData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
         age: formData.age ? Number.parseInt(formData.age) : undefined,
+        grade: formData.grade || undefined,
+        subject: formData.subject || undefined,
+        parent_name: formData.parent_name || undefined,
+        parent_phone: formData.parent_phone || undefined,
+        address: formData.address || undefined,
+        status: formData.status,
         enrollment_date: new Date().toISOString().split("T")[0],
+      }
+
+      const response = await fetch("/api/students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(studentData),
       })
 
-      await studentsAPI.create(sanitizedData)
+      if (!response.ok) {
+        throw new Error("Failed to add student")
+      }
 
       toast({
         title: "Success",
         description: "Student added successfully!",
-      })
-
-      onSubmit?.({
-        ...formData,
-        age: formData.age ? Number.parseInt(formData.age) : undefined,
       })
 
       setFormData({
@@ -89,6 +107,7 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
         status: "active",
       })
 
+      onStudentAdded?.()
       handleOpenChange(false)
     } catch (error) {
       console.error("Error adding student:", error)
@@ -123,24 +142,28 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">
+                  Full Name <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Enter student's full name"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="John Doe"
                   required
                   disabled={loading}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">
+                  Email <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="student@example.com"
                   required
                   disabled={loading}
@@ -148,11 +171,13 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone *</Label>
+                <Label htmlFor="phone">
+                  Phone <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+20-100-123-4567"
                   required
                   disabled={loading}
@@ -165,7 +190,7 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
                   id="age"
                   type="number"
                   value={formData.age}
-                  onChange={(e) => handleInputChange("age", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                   placeholder="15"
                   min="5"
                   max="120"
@@ -181,9 +206,13 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="grade">Grade *</Label>
-                <Select value={formData.grade} onValueChange={(value) => handleInputChange("grade", value)}>
-                  <SelectTrigger disabled={loading}>
+                <Label htmlFor="grade">Grade</Label>
+                <Select
+                  value={formData.grade}
+                  onValueChange={(value) => setFormData({ ...formData, grade: value })}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
                     <SelectValue placeholder="Select grade" />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,9 +235,13 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject *</Label>
-                <Select value={formData.subject} onValueChange={(value) => handleInputChange("subject", value)}>
-                  <SelectTrigger disabled={loading}>
+                <Label htmlFor="subject">Subject</Label>
+                <Select
+                  value={formData.subject}
+                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
@@ -238,7 +271,7 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
                 <Input
                   id="parent_name"
                   value={formData.parent_name}
-                  onChange={(e) => handleInputChange("parent_name", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
                   placeholder="Parent's name"
                   disabled={loading}
                 />
@@ -249,7 +282,7 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
                 <Input
                   id="parent_phone"
                   value={formData.parent_phone}
-                  onChange={(e) => handleInputChange("parent_phone", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
                   placeholder="Parent's phone number"
                   disabled={loading}
                 />
@@ -257,7 +290,7 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
             </div>
           </div>
 
-          {/* Address */}
+          {/* Address and Status */}
           <div className="space-y-4">
             <h3 className="font-semibold text-slate-800">Additional Information</h3>
 
@@ -266,7 +299,7 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
               <Textarea
                 id="address"
                 value={formData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Enter student's address..."
                 rows={3}
                 disabled={loading}
@@ -275,8 +308,12 @@ export function AddStudentModal({ open = false, onOpenChange, onSubmit }: AddStu
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
-                <SelectTrigger disabled={loading}>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                disabled={loading}
+              >
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

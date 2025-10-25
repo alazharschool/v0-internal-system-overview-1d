@@ -9,22 +9,21 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { studentsAPI, teachersAPI, classesAPI, type Student, type Teacher } from "@/lib/database"
-import { generateTimeSlots, addMinutesToTime } from "@/utils/time-format"
 import { Loader2, CheckCircle } from "lucide-react"
 
 interface ScheduleClassModalProps {
   isOpen: boolean
   onClose: () => void
   studentId?: string
+  onSuccess?: () => void
 }
 
-export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClassModalProps) {
+export function ScheduleClassModal({ isOpen, onClose, studentId, onSuccess }: ScheduleClassModalProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [students, setStudents] = useState<Student[]>([])
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [filteredTeachers, setFilteredTeachers] = useState<Teacher[]>([])
+  const [students, setStudents] = useState<any[]>([])
+  const [teachers, setTeachers] = useState<any[]>([])
+  const [filteredTeachers, setFilteredTeachers] = useState<any[]>([])
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -37,18 +36,21 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
     notes: "",
   })
 
-  const timeSlots = generateTimeSlots(8, 20, 30)
+  const timeSlots = generateTimeSlots()
 
   useEffect(() => {
     if (isOpen) {
       loadData()
+      setFormData((prev) => ({ ...prev, student_id: studentId || "" }))
     }
-  }, [isOpen])
+  }, [isOpen, studentId])
 
   useEffect(() => {
     if (formData.subject) {
-      const filtered = teachers.filter((teacher) =>
-        teacher.subjects.some((subj) => subj.toLowerCase() === formData.subject.toLowerCase()),
+      const filtered = teachers.filter(
+        (teacher) =>
+          teacher.subjects?.some((subj: string) => subj.toLowerCase() === formData.subject.toLowerCase()) ||
+          teacher.subject?.toLowerCase() === formData.subject.toLowerCase(),
       )
       setFilteredTeachers(filtered)
     } else {
@@ -58,9 +60,17 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
 
   const loadData = async () => {
     try {
-      const [studentsData, teachersData] = await Promise.all([studentsAPI.getAll(), teachersAPI.getAll()])
-      setStudents(studentsData)
-      setTeachers(teachersData)
+      const [studentsRes, teachersRes] = await Promise.all([fetch("/api/students"), fetch("/api/teachers")])
+
+      if (studentsRes.ok) {
+        const studentsData = await studentsRes.json()
+        setStudents(Array.isArray(studentsData) ? studentsData : [])
+      }
+
+      if (teachersRes.ok) {
+        const teachersData = await teachersRes.json()
+        setTeachers(Array.isArray(teachersData) ? teachersData : [])
+      }
     } catch (error) {
       console.error("Error loading data:", error)
       toast({
@@ -69,15 +79,6 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
         variant: "destructive",
       })
     }
-  }
-
-  const handleStudentChange = (newStudentId: string) => {
-    const student = students.find((s) => s.id === newStudentId)
-    setFormData((prev) => ({
-      ...prev,
-      student_id: newStudentId,
-      subject: student?.subject || "",
-    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,43 +103,51 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
 
     try {
       const duration = Number.parseInt(formData.duration)
-      const endTime = addMinutesToTime(formData.start_time, duration)
+      const [hours, minutes] = formData.start_time.split(":").map(Number)
+      const endHours = Math.floor((hours * 60 + minutes + duration) / 60)
+      const endMinutes = (hours * 60 + minutes + duration) % 60
+      const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`
 
       const classData = {
         student_id: formData.student_id,
         teacher_id: formData.teacher_id,
         subject: formData.subject,
         class_date: formData.class_date,
-        start_time: formData.start_time,
+        start_time: formData.start_time + ":00",
         end_time: endTime,
         duration,
-        status: "scheduled" as const,
+        status: "scheduled",
         notes: formData.notes,
       }
 
-      const result = await classesAPI.create(classData)
+      const response = await fetch("/api/classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(classData),
+      })
 
-      if (result) {
-        setSuccess(true)
-        toast({
-          title: "Success",
-          description: "Class scheduled successfully!",
+      if (!response.ok) throw new Error("Failed to schedule class")
+
+      setSuccess(true)
+      toast({
+        title: "Success",
+        description: "Class scheduled successfully!",
+      })
+
+      setTimeout(() => {
+        setFormData({
+          student_id: studentId || "",
+          teacher_id: "",
+          subject: "",
+          class_date: "",
+          start_time: "",
+          duration: "60",
+          notes: "",
         })
-
-        setTimeout(() => {
-          setFormData({
-            student_id: studentId || "",
-            teacher_id: "",
-            subject: "",
-            class_date: "",
-            start_time: "",
-            duration: "60",
-            notes: "",
-          })
-          setSuccess(false)
-          onClose()
-        }, 1500)
-      }
+        setSuccess(false)
+        onSuccess?.()
+        onClose()
+      }, 1500)
     } catch (error) {
       console.error("Error scheduling class:", error)
       toast({
@@ -176,15 +185,26 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="student">Student *</Label>
-              <Select value={formData.student_id} onValueChange={handleStudentChange}>
+              <Label htmlFor="student">
+                Student <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.student_id}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    student_id: value,
+                    subject: students.find((s) => s.id === value)?.subject || prev.subject,
+                  }))
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a student" />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map((student) => (
                     <SelectItem key={student.id} value={student.id}>
-                      {student.name} - {student.grade}
+                      {student.name} - {student.grade || "N/A"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -192,7 +212,9 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject">Subject *</Label>
+              <Label htmlFor="subject">
+                Subject <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={formData.subject}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, subject: value }))}
@@ -216,7 +238,9 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="teacher">Teacher *</Label>
+              <Label htmlFor="teacher">
+                Teacher <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={formData.teacher_id}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, teacher_id: value }))}
@@ -235,7 +259,9 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="class_date">Date *</Label>
+              <Label htmlFor="class_date">
+                Date <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="class_date"
                 type="date"
@@ -247,7 +273,9 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="start_time">Start Time *</Label>
+              <Label htmlFor="start_time">
+                Start Time <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={formData.start_time}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, start_time: value }))}
@@ -258,11 +286,7 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
                 <SelectContent>
                   {timeSlots.map((time) => (
                     <SelectItem key={time} value={time}>
-                      {new Date(`2000-01-01T${time}`).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
+                      {time}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -270,7 +294,9 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (minutes) *</Label>
+              <Label htmlFor="duration">
+                Duration (minutes) <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={formData.duration}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, duration: value }))}
@@ -313,4 +339,14 @@ export function ScheduleClassModal({ isOpen, onClose, studentId }: ScheduleClass
       </DialogContent>
     </Dialog>
   )
+}
+
+function generateTimeSlots(): string[] {
+  const slots: string[] = []
+  for (let hour = 8; hour < 20; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      slots.push(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`)
+    }
+  }
+  return slots
 }

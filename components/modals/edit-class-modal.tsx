@@ -2,39 +2,30 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { classesAPI, type Class } from "@/lib/database"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { CheckCircle } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 interface EditClassModalProps {
   isOpen: boolean
   onClose: () => void
+  classItem: any
   onSuccess?: () => void
-  classItem: Class
 }
 
-export function EditClassModal({ isOpen, onClose, onSuccess, classItem }: EditClassModalProps) {
+export function EditClassModal({ isOpen, onClose, classItem, onSuccess }: EditClassModalProps) {
   const [loading, setLoading] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
   const [formData, setFormData] = useState({
     subject: "",
     class_date: "",
     start_time: "",
     end_time: "",
-    duration: "",
+    duration: "60",
     status: "scheduled" as const,
     notes: "",
   })
@@ -43,49 +34,61 @@ export function EditClassModal({ isOpen, onClose, onSuccess, classItem }: EditCl
 
   useEffect(() => {
     if (classItem) {
+      const startTime = classItem.start_time?.split(":").slice(0, 2).join(":") || ""
+      const endTime = classItem.end_time?.split(":").slice(0, 2).join(":") || ""
+
       setFormData({
         subject: classItem.subject || "",
         class_date: classItem.class_date || "",
-        start_time: classItem.start_time || "",
-        end_time: classItem.end_time || "",
-        duration: classItem.duration?.toString() || "",
-        status: classItem.status,
+        start_time: startTime,
+        end_time: endTime,
+        duration: classItem.duration?.toString() || "60",
+        status: classItem.status || "scheduled",
         notes: classItem.notes || "",
       })
     }
-  }, [classItem])
+  }, [classItem, isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!classItem?.id) {
+      toast({
+        title: "Error",
+        description: "Class ID not found",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
-      const updateData = {
-        ...formData,
-        duration: formData.duration ? Number.parseInt(formData.duration) : classItem.duration,
-      }
+      const response = await fetch(`/api/classes/${classItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          start_time: formData.start_time + ":00",
+          end_time: formData.end_time + ":00",
+          duration: Number.parseInt(formData.duration),
+        }),
+      })
 
-      const result = await classesAPI.update(classItem.id, updateData)
+      if (!response.ok) throw new Error("Failed to update class")
 
-      if (result) {
-        setShowSuccess(true)
-        setTimeout(() => {
-          setShowSuccess(false)
-          onSuccess?.()
-          onClose()
-        }, 2000)
-      } else {
-        toast({
-          title: "خطأ",
-          description: "فشل تحديث الحصة. يرجى المحاولة مرة أخرى.",
-          variant: "destructive",
-        })
-      }
+      toast({
+        title: "Success",
+        description: "Class updated successfully!",
+      })
+
+      onSuccess?.()
+      onClose()
     } catch (error) {
       console.error("Error updating class:", error)
       toast({
-        title: "خطأ",
-        description: "فشل تحديث الحصة. يرجى المحاولة مرة أخرى.",
+        title: "Error",
+        description: "Failed to update class. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -93,132 +96,124 @@ export function EditClassModal({ isOpen, onClose, onSuccess, classItem }: EditCl
     }
   }
 
-  if (showSuccess) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[400px]">
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">تم التحديث بنجاح!</h2>
-            <p className="text-gray-600 text-center">تم تحديث بيانات الحصة بنجاح</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>تعديل الحصة</DialogTitle>
-          <DialogDescription>تحديث معلومات الحصة الدراسية</DialogDescription>
+          <DialogTitle>Edit Class</DialogTitle>
+          <DialogDescription>Update class information</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="subject">المادة *</Label>
+              <Label htmlFor="subject">Subject *</Label>
               <Input
                 id="subject"
                 value={formData.subject}
-                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                required
+                onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
                 disabled={loading}
+                required
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="class_date">التاريخ *</Label>
+              <Label htmlFor="class_date">Date *</Label>
               <Input
                 id="class_date"
                 type="date"
                 value={formData.class_date}
-                onChange={(e) => setFormData({ ...formData, class_date: e.target.value })}
-                required
+                onChange={(e) => setFormData((prev) => ({ ...prev, class_date: e.target.value }))}
                 disabled={loading}
+                required
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="start_time">وقت البداية *</Label>
+              <Label htmlFor="start_time">Start Time *</Label>
               <Input
                 id="start_time"
                 type="time"
                 value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                required
+                onChange={(e) => setFormData((prev) => ({ ...prev, start_time: e.target.value }))}
                 disabled={loading}
+                required
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="end_time">وقت النهاية *</Label>
+              <Label htmlFor="end_time">End Time *</Label>
               <Input
                 id="end_time"
                 type="time"
                 value={formData.end_time}
-                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                required
+                onChange={(e) => setFormData((prev) => ({ ...prev, end_time: e.target.value }))}
                 disabled={loading}
+                required
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="duration">المدة (دقيقة) *</Label>
-              <Input
-                id="duration"
-                type="number"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">الحالة</Label>
+              <Label htmlFor="duration">Duration (minutes) *</Label>
               <Select
-                value={formData.status}
-                onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                value={formData.duration}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, duration: value }))}
                 disabled={loading}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="scheduled">مجدولة</SelectItem>
-                  <SelectItem value="completed">مكتملة</SelectItem>
-                  <SelectItem value="cancelled">ملغاة</SelectItem>
-                  <SelectItem value="no_show">لم يحضر</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                  <SelectItem value="45">45 minutes</SelectItem>
+                  <SelectItem value="60">60 minutes</SelectItem>
+                  <SelectItem value="90">90 minutes</SelectItem>
+                  <SelectItem value="120">120 minutes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as any }))}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="no_show">No Show</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">الملاحظات</Label>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+              placeholder="Add any notes about this class..."
               rows={3}
               disabled={loading}
-              placeholder="أضف ملاحظات عن الحصة..."
             />
           </div>
 
-          <DialogFooter>
+          <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              إلغاء
+              Cancel
             </Button>
             <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-              {loading ? "جاري التحديث..." : "تحديث الحصة"}
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Update Class
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
