@@ -428,3 +428,42 @@ export const dashboardAPI = {
     }
   },
 }
+// API لإدارة الدروس التجريبية
+export const trialClassesAPI = {
+  getAll: async () => {
+    // جلب كل الدروس التجريبية من السيرفر
+    const res = await fetch("/api/trial-classes")
+    if (!res.ok) throw new Error("Failed to fetch trial classes")
+    return res.json()
+  },
+  getById: async (id: string) => {
+    const res = await fetch(`/api/trial-classes/${id}`)
+    if (!res.ok) throw new Error("Failed to fetch trial class")
+    return res.json()
+  },
+  create: async (data: any) => {
+    const res = await fetch("/api/trial-classes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error("Failed to create trial class")
+    return res.json()
+  },
+  update: async (id: string, data: any) => {
+    const res = await fetch(`/api/trial-classes/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error("Failed to update trial class")
+    return res.json()
+  },
+  delete: async (id: string) => {
+    const res = await fetch(`/api/trial-classes/${id}`, {
+      method: "DELETE",
+    })
+    if (!res.ok) throw new Error("Failed to delete trial class")
+    return res.json()
+  },
+}
