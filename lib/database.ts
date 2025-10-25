@@ -36,7 +36,7 @@ export interface Teacher {
   email: string
   phone: string
   subject: string
-  subjects: string[]
+  subjects?: string[]
   hourly_rate: number
   status: "active" | "inactive"
   join_date: string
@@ -54,12 +54,12 @@ export interface Class {
   subject: string
   class_date: string
   start_time: string
-  end_time: string
+  end_time?: string
   duration: number
   status: "scheduled" | "completed" | "cancelled" | "no_show"
   notes?: string
-  student?: { name: string; phone: string }
-  teacher?: { name: string; phone: string }
+  student?: { name: string; phone?: string }
+  teacher?: { name: string; phone?: string }
   created_at?: string
   updated_at?: string
 }
@@ -82,18 +82,6 @@ export interface TrialClass {
   notes?: string
 }
 
-export interface Course {
-  id: string
-  name: string
-  description?: string
-  subject: string
-  level: string
-  duration_hours: number
-  price?: number
-  created_at?: string
-  updated_at?: string
-}
-
 export interface DashboardStats {
   total_students: number
   active_students: number
@@ -103,12 +91,18 @@ export interface DashboardStats {
   today_classes: number
 }
 
-// Students API
+// ===========================
+// STUDENTS API
+// ===========================
 export const studentsAPI = {
   async getAll(): Promise<Student[]> {
     try {
       const { data, error } = await supabase.from("students").select("*").order("created_at", { ascending: false })
-      if (error) throw error
+
+      if (error) {
+        console.error("Supabase error fetching students:", error)
+        return []
+      }
       return data || []
     } catch (error) {
       console.error("Error fetching students:", error)
@@ -119,7 +113,11 @@ export const studentsAPI = {
   async getById(id: string): Promise<Student | null> {
     try {
       const { data, error } = await supabase.from("students").select("*").eq("id", id).single()
-      if (error) throw error
+
+      if (error) {
+        console.error("Supabase error fetching student:", error)
+        return null
+      }
       return data
     } catch (error) {
       console.error("Error fetching student:", error)
@@ -181,16 +179,23 @@ export const studentsAPI = {
   },
 }
 
-// Teachers API
+// ===========================
+// TEACHERS API
+// ===========================
 export const teachersAPI = {
   async getAll(): Promise<Teacher[]> {
     try {
       const { data, error } = await supabase.from("teachers").select("*").order("created_at", { ascending: false })
-      if (error) throw error
+
+      if (error) {
+        console.error("Supabase error fetching teachers:", error)
+        return []
+      }
+
       return (
         data?.map((teacher: any) => ({
           ...teacher,
-          subjects: teacher.subject ? [teacher.subject] : teacher.subjects || [],
+          subjects: teacher.subjects || (teacher.subject ? [teacher.subject] : []),
         })) || []
       )
     } catch (error) {
@@ -202,10 +207,15 @@ export const teachersAPI = {
   async getById(id: string): Promise<Teacher | null> {
     try {
       const { data, error } = await supabase.from("teachers").select("*").eq("id", id).single()
-      if (error) throw error
+
+      if (error) {
+        console.error("Supabase error fetching teacher:", error)
+        return null
+      }
+
       return {
         ...data,
-        subjects: data.subject ? [data.subject] : data.subjects || [],
+        subjects: data.subjects || (data.subject ? [data.subject] : []),
       }
     } catch (error) {
       console.error("Error fetching teacher:", error)
@@ -267,12 +277,28 @@ export const teachersAPI = {
   },
 }
 
-// Classes API
+// ===========================
+// CLASSES API
+// ===========================
 export const classesAPI = {
   async getAll(): Promise<Class[]> {
     try {
-      const { data, error } = await supabase.from("classes").select("*").order("class_date", { ascending: false })
-      if (error) throw error
+      const { data, error } = await supabase
+        .from("classes")
+        .select(
+          `
+          *,
+          student:students(id, name, phone),
+          teacher:teachers(id, name, phone)
+        `,
+        )
+        .order("class_date", { ascending: false })
+
+      if (error) {
+        console.error("Supabase error fetching classes:", error)
+        return []
+      }
+
       return data || []
     } catch (error) {
       console.error("Error fetching classes:", error)
@@ -282,8 +308,23 @@ export const classesAPI = {
 
   async getById(id: string): Promise<Class | null> {
     try {
-      const { data, error } = await supabase.from("classes").select("*").eq("id", id).single()
-      if (error) throw error
+      const { data, error } = await supabase
+        .from("classes")
+        .select(
+          `
+          *,
+          student:students(id, name, phone),
+          teacher:teachers(id, name, phone)
+        `,
+        )
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("Supabase error fetching class:", error)
+        return null
+      }
+
       return data
     } catch (error) {
       console.error("Error fetching class:", error)
@@ -295,11 +336,21 @@ export const classesAPI = {
     try {
       const { data, error } = await supabase
         .from("classes")
-        .select("*")
+        .select(
+          `
+          *,
+          student:students(id, name, phone),
+          teacher:teachers(id, name, phone)
+        `,
+        )
         .eq("student_id", studentId)
         .order("class_date", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error("Supabase error fetching student classes:", error)
+        return []
+      }
+
       return data || []
     } catch (error) {
       console.error("Error fetching student classes:", error)
@@ -361,14 +412,23 @@ export const classesAPI = {
   },
 }
 
-// Trial Classes API - Fixed to always return JSON
+// ===========================
+// TRIAL CLASSES API
+// ===========================
 export const trialClassesAPI = {
   async getAll(): Promise<TrialClass[]> {
     try {
-      const response = await fetch("/api/trial-classes")
-      if (!response.ok) throw new Error("Failed to fetch trial classes")
-      const data = await response.json()
-      return Array.isArray(data) ? data : []
+      const { data, error } = await supabase
+        .from("trial_classes")
+        .select("*, teacher:teachers(id, name)")
+        .order("date", { ascending: false })
+
+      if (error) {
+        console.error("Supabase error fetching trial classes:", error)
+        return []
+      }
+
+      return data || []
     } catch (error) {
       console.error("Error fetching trial classes:", error)
       return []
@@ -377,26 +437,30 @@ export const trialClassesAPI = {
 
   async getById(id: string): Promise<TrialClass | null> {
     try {
-      const response = await fetch(`/api/trial-classes/${id}`)
-      if (!response.ok) throw new Error("Failed to fetch trial class")
-      const data = await response.json()
-      return data || null
+      const { data, error } = await supabase
+        .from("trial_classes")
+        .select("*, teacher:teachers(id, name)")
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("Supabase error fetching trial class:", error)
+        return null
+      }
+
+      return data
     } catch (error) {
       console.error("Error fetching trial class:", error)
       return null
     }
   },
 
-  async create(trialClassData: Omit<TrialClass, "id">): Promise<TrialClass | null> {
+  async create(trialClass: Omit<TrialClass, "id">): Promise<TrialClass | null> {
     try {
-      const response = await fetch("/api/trial-classes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trialClassData),
-      })
-      if (!response.ok) throw new Error("Failed to create trial class")
-      const data = await response.json()
-      return data || null
+      const { data, error } = await supabase.from("trial_classes").insert([trialClass]).select().single()
+
+      if (error) throw error
+      return data
     } catch (error) {
       console.error("Error creating trial class:", error)
       throw error
@@ -405,14 +469,10 @@ export const trialClassesAPI = {
 
   async update(id: string, updates: Partial<TrialClass>): Promise<TrialClass | null> {
     try {
-      const response = await fetch(`/api/trial-classes/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      })
-      if (!response.ok) throw new Error("Failed to update trial class")
-      const data = await response.json()
-      return data || null
+      const { data, error } = await supabase.from("trial_classes").update(updates).eq("id", id).select().single()
+
+      if (error) throw error
+      return data
     } catch (error) {
       console.error("Error updating trial class:", error)
       throw error
@@ -421,10 +481,8 @@ export const trialClassesAPI = {
 
   async delete(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`/api/trial-classes/${id}`, {
-        method: "DELETE",
-      })
-      if (!response.ok) throw new Error("Failed to delete trial class")
+      const { error } = await supabase.from("trial_classes").delete().eq("id", id)
+      if (error) throw error
       return true
     } catch (error) {
       console.error("Error deleting trial class:", error)
@@ -433,47 +491,13 @@ export const trialClassesAPI = {
   },
 }
 
-// Courses API
-export const coursesAPI = {
-  async getAll(): Promise<Course[]> {
-    try {
-      const { data, error } = await supabase.from("courses").select("*").order("created_at", { ascending: false })
-      if (error) throw error
-      return data || []
-    } catch (error) {
-      console.error("Error fetching courses:", error)
-      return []
-    }
-  },
-
-  async create(course: Omit<Course, "id" | "created_at" | "updated_at">): Promise<Course | null> {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .insert([
-          {
-            ...course,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error creating course:", error)
-      throw error
-    }
-  },
-}
-
-// Dashboard API
+// ===========================
+// DASHBOARD API
+// ===========================
 export const dashboardAPI = {
   async getStats(): Promise<DashboardStats> {
     try {
-      const [studentsData, teachersData, classesData] = await Promise.all([
+      const [studentsRes, teachersRes, classesRes] = await Promise.all([
         supabase.from("students").select("*", { count: "exact", head: true }),
         supabase.from("teachers").select("*", { count: "exact", head: true }),
         supabase.from("classes").select("*", { count: "exact", head: true }),
@@ -485,22 +509,22 @@ export const dashboardAPI = {
         .select("*", { count: "exact", head: true })
         .eq("class_date", today)
 
-      const activeStudents = await supabase
+      const { count: activeStudentsCount } = await supabase
         .from("students")
         .select("*", { count: "exact", head: true })
         .eq("status", "active")
 
-      const activeTeachers = await supabase
+      const { count: activeTeachersCount } = await supabase
         .from("teachers")
         .select("*", { count: "exact", head: true })
         .eq("status", "active")
 
       return {
-        total_students: studentsData.count || 0,
-        active_students: activeStudents.count || 0,
-        total_teachers: teachersData.count || 0,
-        active_teachers: activeTeachers.count || 0,
-        total_classes: classesData.count || 0,
+        total_students: studentsRes.count || 0,
+        active_students: activeStudentsCount || 0,
+        total_teachers: teachersRes.count || 0,
+        active_teachers: activeTeachersCount || 0,
+        total_classes: classesRes.count || 0,
         today_classes: todayCount || 0,
       }
     } catch (error) {

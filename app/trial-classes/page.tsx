@@ -408,9 +408,12 @@ export default function TrialClassesPage() {
                     <TableRow key={trialClass.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>
-                        <button className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium transition-colors text-left">
+                        <Link
+                          href={`/students/${trialClass.id}`}
+                          className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium transition-colors"
+                        >
                           {trialClass.student_name}
-                        </button>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col text-sm">

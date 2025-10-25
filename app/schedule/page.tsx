@@ -556,17 +556,20 @@ export default function SchedulePage() {
                           </TableCell>
 
                           <TableCell>
-                            <div className="flex items-center gap-2 group">
+                            <Link
+                              href={`/teachers/${classItem.teacher_id}`}
+                              className="flex items-center gap-2 group hover:bg-emerald-50 rounded-lg p-2 transition-colors"
+                            >
                               <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <GraduationCap className="w-4 h-4 text-emerald-600" />
                               </div>
                               <div>
-                                <div className="font-semibold text-emerald-600">
+                                <div className="font-semibold text-emerald-600 group-hover:text-emerald-800 transition-colors">
                                   {classItem.teacher?.name || "Unknown"}
                                 </div>
                                 <div className="text-xs text-slate-500">{classItem.teacher?.phone || "No phone"}</div>
                               </div>
-                            </div>
+                            </Link>
                           </TableCell>
 
                           <TableCell className="text-center">

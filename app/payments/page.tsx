@@ -54,22 +54,22 @@ function usePaymentsPageActions() {
         {
           id: "1",
           student_id: "1",
-          student_name: "Ahmed Mohamed",
+          student_name: "أحمد محمد",
           amount: 300,
           dueDate: "2024-01-15",
           paidDate: "2024-01-14",
           status: "paid",
-          method: "Bank Transfer",
+          method: "تحويل بنكي",
           invoiceNumber: "INV-2024-001",
-          description: "Monthly Classes",
+          description: "الحصص الشهرية",
         },
       ]
       setPayments(mockPayments)
     } catch (error) {
       console.error("Error loading payments:", error)
       toast({
-        title: "Error",
-        description: "Failed to load payments. Please try again.",
+        title: "خطأ",
+        description: "فشل تحميل المدفوعات. حاول مرة أخرى.",
         variant: "destructive",
       })
     } finally {
@@ -102,7 +102,7 @@ function usePaymentsPageActions() {
   const handleExportReport = useCallback(() => {
     try {
       const csv = [
-        ["Invoice", "Student", "Amount", "Due Date", "Status"],
+        ["الفاتورة", "الطالب", "المبلغ", "تاريخ الاستحقاق", "الحالة"],
         ...filteredPayments.map((p) => [p.invoiceNumber, p.student_name, `$${p.amount}`, p.dueDate, p.status]),
       ]
         .map((row) => row.join(","))
@@ -116,14 +116,14 @@ function usePaymentsPageActions() {
       a.click()
 
       toast({
-        title: "Success",
-        description: "Report exported successfully",
+        title: "نجاح",
+        description: "تم تصدير التقرير بنجاح! ✅",
       })
     } catch (error) {
       console.error("Error exporting report:", error)
       toast({
-        title: "Error",
-        description: "Failed to export report. Please try again.",
+        title: "خطأ",
+        description: "فشل تصدير التقرير. حاول مرة أخرى.",
         variant: "destructive",
       })
     }
@@ -131,8 +131,8 @@ function usePaymentsPageActions() {
 
   const handleAddPayment = useCallback(() => {
     toast({
-      title: "Add Payment",
-      description: "Feature coming soon",
+      title: "إضافة مدفوعة",
+      description: "هذه الميزة قريباً",
     })
   }, [toast])
 
@@ -140,14 +140,14 @@ function usePaymentsPageActions() {
     try {
       await loadPayments()
       toast({
-        title: "Refreshed",
-        description: "Payments updated successfully",
+        title: "تم التحديث",
+        description: "تم تحديث المدفوعات بنجاح! ✅",
       })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to refresh. Please try again.",
+        title: "خطأ",
+        description: "فشل التحديث. حاول مرة أخرى.",
       })
     }
   }, [loadPayments, toast])
@@ -172,11 +172,11 @@ export default function PaymentsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Paid</Badge>
+        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">مدفوع</Badge>
       case "pending":
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">قيد الانتظار</Badge>
       case "overdue":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Overdue</Badge>
+        return <Badge className="bg-red-100 text-red-800 border-red-200">متأخر</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -194,7 +194,7 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading payments...</p>
+          <p className="text-gray-600">جاري تحميل المدفوعات...</p>
         </div>
       </div>
     )
@@ -209,24 +209,24 @@ export default function PaymentsPage() {
             <Button variant="ghost" size="sm" asChild>
               <Link href="/">
                 <Home className="w-4 h-4 mr-2" />
-                Dashboard
+                لوحة التحكم
               </Link>
             </Button>
             <div className="space-y-2">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                Payments Management
+                إدارة المدفوعات
               </h1>
-              <p className="text-slate-600 text-lg">Track and manage all student payments</p>
+              <p className="text-slate-600 text-lg">متابعة وإدارة جميع مدفوعات الطلاب</p>
             </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
               <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+              تحديث
             </Button>
             <Button onClick={actions.handleAddPayment} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
-              Add Payment
+              إضافة مدفوعة
             </Button>
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function PaymentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-blue-700 font-medium text-sm">Total Revenue</p>
+                  <p className="text-blue-700 font-medium text-sm">إجمالي الإيرادات</p>
                   <p className="text-3xl font-bold text-blue-900">${stats.total}</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
@@ -251,7 +251,7 @@ export default function PaymentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-emerald-700 font-medium text-sm">Paid</p>
+                  <p className="text-emerald-700 font-medium text-sm">مدفوع</p>
                   <p className="text-3xl font-bold text-emerald-900">${stats.paid}</p>
                 </div>
                 <div className="w-12 h-12 bg-emerald-200 rounded-full flex items-center justify-center">
@@ -265,7 +265,7 @@ export default function PaymentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-amber-700 font-medium text-sm">Pending</p>
+                  <p className="text-amber-700 font-medium text-sm">قيد الانتظار</p>
                   <p className="text-3xl font-bold text-amber-900">${stats.pending}</p>
                 </div>
                 <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center">
@@ -279,7 +279,7 @@ export default function PaymentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-red-700 font-medium text-sm">Overdue</p>
+                  <p className="text-red-700 font-medium text-sm">متأخر</p>
                   <p className="text-3xl font-bold text-red-900">${stats.overdue}</p>
                 </div>
                 <div className="w-12 h-12 bg-red-200 rounded-full flex items-center justify-center">
@@ -298,7 +298,7 @@ export default function PaymentsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
-                    placeholder="Search payments..."
+                    placeholder="البحث في المدفوعات..."
                     value={actions.searchTerm}
                     onChange={(e) => actions.setSearchTerm(e.target.value)}
                     className="pl-10 bg-white border-slate-200"
@@ -308,10 +308,10 @@ export default function PaymentsPage() {
               <div className="flex items-center gap-2">
                 <Tabs value={actions.statusFilter} onValueChange={(value) => actions.setStatusFilter(value as any)}>
                   <TabsList className="bg-slate-100">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="paid">Paid</TabsTrigger>
-                    <TabsTrigger value="pending">Pending</TabsTrigger>
-                    <TabsTrigger value="overdue">Overdue</TabsTrigger>
+                    <TabsTrigger value="all">الكل</TabsTrigger>
+                    <TabsTrigger value="paid">مدفوع</TabsTrigger>
+                    <TabsTrigger value="pending">قيد الانتظار</TabsTrigger>
+                    <TabsTrigger value="overdue">متأخر</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 <Button
@@ -321,7 +321,7 @@ export default function PaymentsPage() {
                   className="border-slate-200 bg-transparent"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export
+                  تصدير
                 </Button>
               </div>
             </div>
@@ -336,11 +336,11 @@ export default function PaymentsPage() {
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead className="font-semibold text-slate-700">#</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Student</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Invoice</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Amount</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Due Date</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                    <TableHead className="font-semibold text-slate-700">الطالب</TableHead>
+                    <TableHead className="font-semibold text-slate-700">الفاتورة</TableHead>
+                    <TableHead className="font-semibold text-slate-700">المبلغ</TableHead>
+                    <TableHead className="font-semibold text-slate-700">تاريخ الاستحقاق</TableHead>
+                    <TableHead className="font-semibold text-slate-700">الحالة</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -348,7 +348,7 @@ export default function PaymentsPage() {
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8">
                         <CreditCard className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500">No payments found</p>
+                        <p className="text-slate-500">لم يتم العثور على مدفوعات</p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -366,7 +366,12 @@ export default function PaymentsPage() {
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{payment.student_name}</span>
+                            <Link
+                              href={`/students/${payment.student_id}`}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                            >
+                              {payment.student_name}
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell>

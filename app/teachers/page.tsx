@@ -282,7 +282,12 @@ export default function TeachersPage() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{teacher.name}</h3>
+                            <Link
+                              href={`/teachers/${teacher.id}`}
+                              className="font-semibold text-gray-900 hover:text-emerald-600 hover:underline transition-colors cursor-pointer"
+                            >
+                              {teacher.name}
+                            </Link>
                             <p className="text-sm text-gray-600">{teacher.subject}</p>
                           </div>
                         </div>

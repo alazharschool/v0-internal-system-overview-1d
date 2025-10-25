@@ -1,20 +1,15 @@
-import { createClient } from "@supabase/supabase-js"
+import { studentsAPI, type Student } from "@/lib/database"
 import { type NextRequest, NextResponse } from "next/server"
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-
-const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { data, error } = await supabase.from("students").select("*").eq("id", params.id).single()
+    const student = await studentsAPI.getById(params.id)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(student, { status: 200 })
   } catch (error) {
     console.error("Error fetching student:", error)
     return NextResponse.json({ error: "Failed to fetch student" }, { status: 500 })
@@ -23,23 +18,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json()
+    const body: Partial<Student> = await request.json()
 
-    const { data, error } = await supabase
-      .from("students")
-      .update({
-        ...body,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", params.id)
-      .select()
-      .single()
+    const student = await studentsAPI.update(params.id, body)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(student, { status: 200 })
   } catch (error) {
     console.error("Error updating student:", error)
     return NextResponse.json({ error: "Failed to update student" }, { status: 500 })
@@ -48,13 +35,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { error } = await supabase.from("students").delete().eq("id", params.id)
+    const success = await studentsAPI.delete(params.id)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    if (!success) {
+      return NextResponse.json({ error: "Failed to delete student" }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ message: "Student deleted successfully" }, { status: 200 })
   } catch (error) {
     console.error("Error deleting student:", error)
     return NextResponse.json({ error: "Failed to delete student" }, { status: 500 })
