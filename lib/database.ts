@@ -22,6 +22,12 @@ export interface Student {
   notes?: string
   created_at?: string
   updated_at?: string
+  weekly_schedule?: Array<{
+    day: string
+    start_time: string
+    end_time: string
+    subject: string
+  }>
 }
 
 export interface Teacher {
@@ -52,8 +58,28 @@ export interface Class {
   duration: number
   status: "scheduled" | "completed" | "cancelled" | "no_show"
   notes?: string
+  student?: { name: string; phone: string }
+  teacher?: { name: string; phone: string }
   created_at?: string
   updated_at?: string
+}
+
+export interface TrialClass {
+  id: string
+  student_name: string
+  student_email: string
+  student_phone: string
+  subject: string
+  date: string
+  time: string
+  duration: number
+  teacher_id?: string
+  teacher?: { name: string }
+  status: "scheduled" | "completed" | "cancelled" | "no_show"
+  outcome?: "pending" | "enrolled" | "declined"
+  parent_name?: string
+  parent_phone?: string
+  notes?: string
 }
 
 export interface Course {
@@ -82,7 +108,6 @@ export const studentsAPI = {
   async getAll(): Promise<Student[]> {
     try {
       const { data, error } = await supabase.from("students").select("*").order("created_at", { ascending: false })
-
       if (error) throw error
       return data || []
     } catch (error) {
@@ -94,7 +119,6 @@ export const studentsAPI = {
   async getById(id: string): Promise<Student | null> {
     try {
       const { data, error } = await supabase.from("students").select("*").eq("id", id).single()
-
       if (error) throw error
       return data
     } catch (error) {
@@ -148,7 +172,6 @@ export const studentsAPI = {
   async delete(id: string): Promise<boolean> {
     try {
       const { error } = await supabase.from("students").delete().eq("id", id)
-
       if (error) throw error
       return true
     } catch (error) {
@@ -163,7 +186,6 @@ export const teachersAPI = {
   async getAll(): Promise<Teacher[]> {
     try {
       const { data, error } = await supabase.from("teachers").select("*").order("created_at", { ascending: false })
-
       if (error) throw error
       return (
         data?.map((teacher: any) => ({
@@ -180,7 +202,6 @@ export const teachersAPI = {
   async getById(id: string): Promise<Teacher | null> {
     try {
       const { data, error } = await supabase.from("teachers").select("*").eq("id", id).single()
-
       if (error) throw error
       return {
         ...data,
@@ -237,7 +258,6 @@ export const teachersAPI = {
   async delete(id: string): Promise<boolean> {
     try {
       const { error } = await supabase.from("teachers").delete().eq("id", id)
-
       if (error) throw error
       return true
     } catch (error) {
@@ -252,7 +272,6 @@ export const classesAPI = {
   async getAll(): Promise<Class[]> {
     try {
       const { data, error } = await supabase.from("classes").select("*").order("class_date", { ascending: false })
-
       if (error) throw error
       return data || []
     } catch (error) {
@@ -264,7 +283,6 @@ export const classesAPI = {
   async getById(id: string): Promise<Class | null> {
     try {
       const { data, error } = await supabase.from("classes").select("*").eq("id", id).single()
-
       if (error) throw error
       return data
     } catch (error) {
@@ -334,11 +352,82 @@ export const classesAPI = {
   async delete(id: string): Promise<boolean> {
     try {
       const { error } = await supabase.from("classes").delete().eq("id", id)
-
       if (error) throw error
       return true
     } catch (error) {
       console.error("Error deleting class:", error)
+      return false
+    }
+  },
+}
+
+// Trial Classes API - Fixed to always return JSON
+export const trialClassesAPI = {
+  async getAll(): Promise<TrialClass[]> {
+    try {
+      const response = await fetch("/api/trial-classes")
+      if (!response.ok) throw new Error("Failed to fetch trial classes")
+      const data = await response.json()
+      return Array.isArray(data) ? data : []
+    } catch (error) {
+      console.error("Error fetching trial classes:", error)
+      return []
+    }
+  },
+
+  async getById(id: string): Promise<TrialClass | null> {
+    try {
+      const response = await fetch(`/api/trial-classes/${id}`)
+      if (!response.ok) throw new Error("Failed to fetch trial class")
+      const data = await response.json()
+      return data || null
+    } catch (error) {
+      console.error("Error fetching trial class:", error)
+      return null
+    }
+  },
+
+  async create(trialClassData: Omit<TrialClass, "id">): Promise<TrialClass | null> {
+    try {
+      const response = await fetch("/api/trial-classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trialClassData),
+      })
+      if (!response.ok) throw new Error("Failed to create trial class")
+      const data = await response.json()
+      return data || null
+    } catch (error) {
+      console.error("Error creating trial class:", error)
+      throw error
+    }
+  },
+
+  async update(id: string, updates: Partial<TrialClass>): Promise<TrialClass | null> {
+    try {
+      const response = await fetch(`/api/trial-classes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+      if (!response.ok) throw new Error("Failed to update trial class")
+      const data = await response.json()
+      return data || null
+    } catch (error) {
+      console.error("Error updating trial class:", error)
+      throw error
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/trial-classes/${id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) throw new Error("Failed to delete trial class")
+      return true
+    } catch (error) {
+      console.error("Error deleting trial class:", error)
       return false
     }
   },
@@ -349,7 +438,6 @@ export const coursesAPI = {
   async getAll(): Promise<Course[]> {
     try {
       const { data, error } = await supabase.from("courses").select("*").order("created_at", { ascending: false })
-
       if (error) throw error
       return data || []
     } catch (error) {
@@ -426,44 +514,5 @@ export const dashboardAPI = {
         today_classes: 0,
       }
     }
-  },
-}
-// API لإدارة الدروس التجريبية
-export const trialClassesAPI = {
-  getAll: async () => {
-    // جلب كل الدروس التجريبية من السيرفر
-    const res = await fetch("/api/trial-classes")
-    if (!res.ok) throw new Error("Failed to fetch trial classes")
-    return res.json()
-  },
-  getById: async (id: string) => {
-    const res = await fetch(`/api/trial-classes/${id}`)
-    if (!res.ok) throw new Error("Failed to fetch trial class")
-    return res.json()
-  },
-  create: async (data: any) => {
-    const res = await fetch("/api/trial-classes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    if (!res.ok) throw new Error("Failed to create trial class")
-    return res.json()
-  },
-  update: async (id: string, data: any) => {
-    const res = await fetch(`/api/trial-classes/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    if (!res.ok) throw new Error("Failed to update trial class")
-    return res.json()
-  },
-  delete: async (id: string) => {
-    const res = await fetch(`/api/trial-classes/${id}`, {
-      method: "DELETE",
-    })
-    if (!res.ok) throw new Error("Failed to delete trial class")
-    return res.json()
   },
 }

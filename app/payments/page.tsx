@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -19,13 +19,15 @@ import {
   Home,
   Download,
   Calendar,
+  RefreshCw,
 } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 interface Payment {
   id: string
-  studentName: string
-  studentId: string
+  student_id: string
+  student_name: string
   amount: number
   dueDate: string
   paidDate?: string
@@ -35,78 +37,139 @@ interface Payment {
   description: string
 }
 
-export default function PaymentsPage() {
+// Custom Hook for Payments Page Actions
+function usePaymentsPageActions() {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "overdue">("all")
-  const [payments] = useState<Payment[]>([
-    {
-      id: "1",
-      studentName: "Ahmed Mohamed Ali",
-      studentId: "1",
-      amount: 300,
-      dueDate: "2024-01-15",
-      paidDate: "2024-01-14",
-      status: "paid",
-      method: "Bank Transfer",
-      invoiceNumber: "INV-2024-001",
-      description: "Monthly Quran Memorization Classes",
-    },
-    {
-      id: "2",
-      studentName: "Fatima Abdullah",
-      studentId: "2",
-      amount: 250,
-      dueDate: "2024-01-20",
-      status: "pending",
-      invoiceNumber: "INV-2024-002",
-      description: "Monthly Arabic Language Classes",
-    },
-    {
-      id: "3",
-      studentName: "Omar Hassan",
-      studentId: "3",
-      amount: 280,
-      dueDate: "2024-01-10",
-      status: "overdue",
-      invoiceNumber: "INV-2024-003",
-      description: "Monthly Islamic Studies Classes",
-    },
-    {
-      id: "4",
-      studentName: "Khadija Salem",
-      studentId: "4",
-      amount: 320,
-      dueDate: "2024-01-25",
-      paidDate: "2024-01-24",
-      status: "paid",
-      method: "Credit Card",
-      invoiceNumber: "INV-2024-004",
-      description: "Monthly Hadith Studies Classes",
-    },
-    {
-      id: "5",
-      studentName: "Youssef Ibrahim",
-      studentId: "5",
-      amount: 200,
-      dueDate: "2024-01-18",
-      status: "pending",
-      invoiceNumber: "INV-2024-005",
-      description: "Monthly Tajweed Classes",
-    },
-  ])
+  const { toast } = useToast()
 
-  const filteredPayments = payments.filter((payment) => {
-    const matchesSearch =
-      payment.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const loadPayments = useCallback(async () => {
+    try {
+      setLoading(true)
+      // Mock data for now
+      const mockPayments: Payment[] = [
+        {
+          id: "1",
+          student_id: "1",
+          student_name: "Ahmed Mohamed",
+          amount: 300,
+          dueDate: "2024-01-15",
+          paidDate: "2024-01-14",
+          status: "paid",
+          method: "Bank Transfer",
+          invoiceNumber: "INV-2024-001",
+          description: "Monthly Classes",
+        },
+      ]
+      setPayments(mockPayments)
+    } catch (error) {
+      console.error("Error loading payments:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load payments. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter
+  useEffect(() => {
+    loadPayments()
+  }, [loadPayments])
 
-    return matchesSearch && matchesStatus
-  })
+  useEffect(() => {
+    let filtered = payments
 
-  const getStatusBadge = (status: Payment["status"]) => {
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (payment) =>
+          payment.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((payment) => payment.status === statusFilter)
+    }
+
+    setFilteredPayments(filtered)
+  }, [payments, searchTerm, statusFilter])
+
+  const handleExportReport = useCallback(() => {
+    try {
+      const csv = [
+        ["Invoice", "Student", "Amount", "Due Date", "Status"],
+        ...filteredPayments.map((p) => [p.invoiceNumber, p.student_name, `$${p.amount}`, p.dueDate, p.status]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n")
+
+      const blob = new Blob([csv], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `payments-${new Date().toISOString().split("T")[0]}.csv`
+      a.click()
+
+      toast({
+        title: "Success",
+        description: "Report exported successfully",
+      })
+    } catch (error) {
+      console.error("Error exporting report:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export report. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }, [filteredPayments, toast])
+
+  const handleAddPayment = useCallback(() => {
+    toast({
+      title: "Add Payment",
+      description: "Feature coming soon",
+    })
+  }, [toast])
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await loadPayments()
+      toast({
+        title: "Refreshed",
+        description: "Payments updated successfully",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh. Please try again.",
+      })
+    }
+  }, [loadPayments, toast])
+
+  return {
+    payments,
+    filteredPayments,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    handleExportReport,
+    handleAddPayment,
+    handleRefresh,
+  }
+}
+
+export default function PaymentsPage() {
+  const actions = usePaymentsPageActions()
+
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
         return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Paid</Badge>
@@ -119,25 +182,23 @@ export default function PaymentsPage() {
     }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+  const stats = {
+    total: actions.payments.reduce((sum, p) => sum + p.amount, 0),
+    paid: actions.payments.filter((p) => p.status === "paid").reduce((sum, p) => sum + p.amount, 0),
+    pending: actions.payments.filter((p) => p.status === "pending").reduce((sum, p) => sum + p.amount, 0),
+    overdue: actions.payments.filter((p) => p.status === "overdue").reduce((sum, p) => sum + p.amount, 0),
   }
 
-  const getStats = () => {
-    const total = payments.reduce((sum, payment) => sum + payment.amount, 0)
-    const paid = payments.filter((p) => p.status === "paid").reduce((sum, payment) => sum + payment.amount, 0)
-    const pending = payments.filter((p) => p.status === "pending").reduce((sum, payment) => sum + payment.amount, 0)
-    const overdue = payments.filter((p) => p.status === "overdue").reduce((sum, payment) => sum + payment.amount, 0)
-
-    return { total, paid, pending, overdue }
+  if (actions.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading payments...</p>
+        </div>
+      </div>
+    )
   }
-
-  const stats = getStats()
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -155,18 +216,24 @@ export default function PaymentsPage() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 Payments Management
               </h1>
-              <p className="text-slate-600 text-lg">Track and manage all student payments and invoices.</p>
+              <p className="text-slate-600 text-lg">Track and manage all student payments</p>
             </div>
           </div>
-          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Payment
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={actions.handleAddPayment} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Payment
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-sm">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -180,7 +247,7 @@ export default function PaymentsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 shadow-sm">
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -194,7 +261,7 @@ export default function PaymentsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 shadow-sm">
+          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -208,7 +275,7 @@ export default function PaymentsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 shadow-sm">
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -231,15 +298,15 @@ export default function PaymentsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
-                    placeholder="Search payments by student, invoice, or description..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search payments..."
+                    value={actions.searchTerm}
+                    onChange={(e) => actions.setSearchTerm(e.target.value)}
                     className="pl-10 bg-white border-slate-200"
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                <Tabs value={actions.statusFilter} onValueChange={(value) => actions.setStatusFilter(value as any)}>
                   <TabsList className="bg-slate-100">
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="paid">Paid</TabsTrigger>
@@ -247,13 +314,22 @@ export default function PaymentsPage() {
                     <TabsTrigger value="overdue">Overdue</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Button variant="outline" size="sm" className="border-slate-200 bg-transparent">
+                <Button
+                  onClick={actions.handleExportReport}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-200 bg-transparent"
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Export
                 </Button>
               </div>
             </div>
           </CardHeader>
+        </Card>
+
+        {/* Payments Table */}
+        <Card className="shadow-sm border-slate-200">
           <CardContent>
             <div className="rounded-lg border border-slate-200 overflow-hidden">
               <Table>
@@ -262,72 +338,50 @@ export default function PaymentsPage() {
                     <TableHead className="font-semibold text-slate-700">#</TableHead>
                     <TableHead className="font-semibold text-slate-700">Student</TableHead>
                     <TableHead className="font-semibold text-slate-700">Invoice</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Description</TableHead>
                     <TableHead className="font-semibold text-slate-700">Amount</TableHead>
                     <TableHead className="font-semibold text-slate-700">Due Date</TableHead>
                     <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Payment Method</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPayments.length === 0 ? (
+                  {actions.filteredPayments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <CreditCard className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 mb-4">
-                          {searchTerm || statusFilter !== "all"
-                            ? "No payments match your filters"
-                            : "No payments found"}
-                        </p>
-                        {!searchTerm && statusFilter === "all" && (
-                          <Button className="bg-emerald-600 hover:bg-emerald-700">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add First Payment
-                          </Button>
-                        )}
+                        <p className="text-slate-500">No payments found</p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredPayments.map((payment, index) => (
-                      <TableRow key={payment.id} className="hover:bg-slate-50 transition-colors">
+                    actions.filteredPayments.map((payment, index) => (
+                      <TableRow key={payment.id} className="hover:bg-slate-50">
                         <TableCell className="font-medium text-slate-600">{index + 1}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <Avatar className="w-8 h-8 ring-2 ring-slate-200">
-                              <AvatarImage
-                                src={`https://api.dicebear.com/7.x/initials/svg?seed=${payment.studentName}`}
-                              />
-                              <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-xs font-semibold">
-                                {getInitials(payment.studentName)}
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="bg-blue-100 text-blue-700">
+                                {payment.student_name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <Link
-                              href={`/students/${payment.studentId}`}
-                              className="font-medium text-slate-900 hover:text-emerald-600 hover:underline transition-colors"
-                            >
-                              {payment.studentName}
-                            </Link>
+                            <span className="font-medium">{payment.student_name}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <span className="font-mono text-sm text-slate-600">{payment.invoiceNumber}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-slate-600">{payment.description}</span>
+                          <span className="font-semibold">${payment.amount}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="font-semibold text-slate-900">${payment.amount}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <div className="flex items-center gap-2 text-sm">
                             <Calendar className="w-3 h-3 text-slate-400" />
                             {new Date(payment.dueDate).toLocaleDateString()}
                           </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                        <TableCell>
-                          <span className="text-slate-600">{payment.method || "-"}</span>
-                        </TableCell>
                       </TableRow>
                     ))
                   )}

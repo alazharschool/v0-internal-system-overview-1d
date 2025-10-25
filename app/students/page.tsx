@@ -1,22 +1,44 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { studentsAPI, type Student } from "@/lib/database"
 import { AddStudentModal } from "@/components/modals/add-student-modal"
 import { ScheduleClassModal } from "@/components/modals/schedule-class-modal"
 import { EditStudentModal } from "@/components/modals/edit-student-modal"
-import { Search, Plus, Calendar, Edit, Trash2, Users, UserCheck, UserX, GraduationCap, Home } from "lucide-react"
+import {
+  Search,
+  Plus,
+  Calendar,
+  Edit,
+  Trash2,
+  Users,
+  UserCheck,
+  UserX,
+  GraduationCap,
+  Home,
+  RefreshCw,
+} from "lucide-react"
 import Link from "next/link"
 
-export default function StudentsPage() {
+interface Student {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  grade?: string
+  subject?: string
+  status: "active" | "inactive" | "graduated"
+}
+
+// Custom Hook for Page Actions
+function useStudentPageActions() {
   const router = useRouter()
   const { toast } = useToast()
   const [students, setStudents] = useState<Student[]>([])
@@ -24,38 +46,35 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
-  useEffect(() => {
-    loadStudents()
-  }, [])
-
-  useEffect(() => {
-    filterStudents()
-  }, [students, searchTerm, statusFilter])
-
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await studentsAPI.getAll()
-      setStudents(data)
+      const response = await fetch("/api/students")
+      if (!response.ok) throw new Error("Failed to fetch students")
+      const data = await response.json()
+      setStudents(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error loading students:", error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load students",
+        description: "Failed to load students. Please try again.",
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const filterStudents = () => {
+  useEffect(() => {
+    loadStudents()
+  }, [loadStudents])
+
+  useEffect(() => {
     let filtered = students
 
     if (searchTerm) {
@@ -72,46 +91,97 @@ export default function StudentsPage() {
     }
 
     setFilteredStudents(filtered)
-  }
+  }, [students, searchTerm, statusFilter])
 
-  const handleAddStudent = () => {
+  const handleAddStudent = useCallback(() => {
     setIsAddModalOpen(true)
-  }
+  }, [])
 
-  const handleScheduleClass = (student: Student) => {
+  const handleScheduleClass = useCallback((student: Student) => {
     setSelectedStudent(student)
     setIsScheduleModalOpen(true)
-  }
+  }, [])
 
-  const handleEditStudent = (student: Student) => {
+  const handleEditStudent = useCallback((student: Student) => {
     setSelectedStudent(student)
     setIsEditModalOpen(true)
-  }
+  }, [])
 
-  const handleDeleteStudent = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+  const handleDeleteStudent = useCallback(
+    async (id: string, name: string) => {
+      if (!window.confirm(`Are you sure you want to delete ${name}?`)) return
+
       try {
-        const success = await studentsAPI.delete(id)
-        if (success) {
-          toast({
-            title: "Success",
-            description: "Student deleted successfully",
-          })
-          loadStudents()
-        }
+        const response = await fetch(`/api/students/${id}`, { method: "DELETE" })
+        if (!response.ok) throw new Error("Failed to delete")
+
+        toast({
+          title: "Success",
+          description: "Student deleted successfully",
+        })
+        await loadStudents()
       } catch (error) {
+        console.error("Error deleting student:", error)
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to delete student",
+          description: "Failed to delete student. Please try again.",
         })
       }
-    }
-  }
+    },
+    [toast, loadStudents],
+  )
 
-  const handleViewDetails = (studentId: string) => {
-    router.push(`/students/${studentId}`)
+  const handleViewDetails = useCallback(
+    (studentId: string) => {
+      router.push(`/students/${studentId}`)
+    },
+    [router],
+  )
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await loadStudents()
+      toast({
+        title: "Refreshed",
+        description: "Student list updated successfully",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh. Please try again.",
+      })
+    }
+  }, [loadStudents, toast])
+
+  return {
+    students,
+    filteredStudents,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    isAddModalOpen,
+    setIsAddModalOpen,
+    isScheduleModalOpen,
+    setIsScheduleModalOpen,
+    isEditModalOpen,
+    setIsEditModalOpen,
+    selectedStudent,
+    handleAddStudent,
+    handleScheduleClass,
+    handleEditStudent,
+    handleDeleteStudent,
+    handleViewDetails,
+    handleRefresh,
+    loadStudents,
   }
+}
+
+export default function StudentsPage() {
+  const actions = useStudentPageActions()
 
   const getStatusBadge = (status: string) => {
     const statusConfig: { [key: string]: { bg: string; text: string; label: string } } = {
@@ -124,13 +194,13 @@ export default function StudentsPage() {
   }
 
   const stats = {
-    total: students.length,
-    active: students.filter((s) => s.status === "active").length,
-    inactive: students.filter((s) => s.status === "inactive").length,
-    graduated: students.filter((s) => s.status === "graduated").length,
+    total: actions.students.length,
+    active: actions.students.filter((s) => s.status === "active").length,
+    inactive: actions.students.filter((s) => s.status === "inactive").length,
+    graduated: actions.students.filter((s) => s.status === "graduated").length,
   }
 
-  if (loading) {
+  if (actions.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -160,10 +230,19 @@ export default function StudentsPage() {
               <p className="text-slate-600 text-lg">Manage and track all student information</p>
             </div>
           </div>
-          <Button onClick={handleAddStudent} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Student
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button
+              onClick={actions.handleAddStudent}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Student
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -234,24 +313,22 @@ export default function StudentsPage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     placeholder="Search students by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={actions.searchTerm}
+                    onChange={(e) => actions.setSearchTerm(e.target.value)}
                     className="pl-10 bg-white border-slate-200"
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-slate-200 rounded-md bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="graduated">Graduated</option>
-                </select>
-              </div>
+              <select
+                value={actions.statusFilter}
+                onChange={(e) => actions.setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-slate-200 rounded-md bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="graduated">Graduated</option>
+              </select>
             </div>
           </CardHeader>
         </Card>
@@ -260,7 +337,7 @@ export default function StudentsPage() {
         <Card className="shadow-sm border-slate-200">
           <CardHeader>
             <CardTitle>All Students</CardTitle>
-            <CardDescription>Showing {filteredStudents.length} students</CardDescription>
+            <CardDescription>Showing {actions.filteredStudents.length} students</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-slate-200 overflow-hidden">
@@ -277,17 +354,17 @@ export default function StudentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredStudents.length === 0 ? (
+                  {actions.filteredStudents.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8">
                         <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-500 mb-4">
-                          {searchTerm || statusFilter !== "all"
+                          {actions.searchTerm || actions.statusFilter !== "all"
                             ? "No students match your filters"
                             : "No students found"}
                         </p>
-                        {!searchTerm && statusFilter === "all" && (
-                          <Button onClick={handleAddStudent} className="bg-emerald-600 hover:bg-emerald-700">
+                        {!actions.searchTerm && actions.statusFilter === "all" && (
+                          <Button onClick={actions.handleAddStudent} className="bg-emerald-600 hover:bg-emerald-700">
                             <Plus className="w-4 h-4 mr-2" />
                             Add First Student
                           </Button>
@@ -295,13 +372,12 @@ export default function StudentsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredStudents.map((student, index) => (
+                    actions.filteredStudents.map((student, index) => (
                       <TableRow key={student.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-slate-600">{index + 1}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="w-8 h-8 ring-2 ring-slate-200">
-                              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.name}`} />
                               <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-xs font-semibold">
                                 {student.name
                                   .split(" ")
@@ -328,7 +404,7 @@ export default function StudentsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleScheduleClass(student)}
+                              onClick={() => actions.handleScheduleClass(student)}
                               title="Schedule New Class"
                               className="h-8 w-8 p-0"
                             >
@@ -337,7 +413,7 @@ export default function StudentsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEditStudent(student)}
+                              onClick={() => actions.handleEditStudent(student)}
                               title="Edit Student"
                               className="h-8 w-8 p-0"
                             >
@@ -346,16 +422,16 @@ export default function StudentsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleViewDetails(student.id)}
+                              onClick={() => actions.handleViewDetails(student.id)}
                               title="View Details"
                               className="h-8 w-8 p-0"
                             >
-                              <Plus className="h-4 w-4 text-emerald-600" />
+                              <Users className="h-4 w-4 text-emerald-600" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteStudent(student.id, student.name)}
+                              onClick={() => actions.handleDeleteStudent(student.id, student.name)}
                               title="Delete Student"
                               className="h-8 w-8 p-0"
                             >
@@ -374,16 +450,25 @@ export default function StudentsPage() {
       </div>
 
       {/* Modals */}
-      <AddStudentModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} onSubmit={() => loadStudents()} />
+      <AddStudentModal
+        open={actions.isAddModalOpen}
+        onOpenChange={actions.setIsAddModalOpen}
+        onStudentAdded={actions.loadStudents}
+      />
 
-      {selectedStudent && (
+      {actions.selectedStudent && (
         <>
-          <ScheduleClassModal isOpen={isScheduleModalOpen} onClose={() => setIsScheduleModalOpen(false)} />
+          <ScheduleClassModal
+            isOpen={actions.isScheduleModalOpen}
+            onClose={() => actions.setIsScheduleModalOpen(false)}
+            studentId={actions.selectedStudent.id}
+            onSuccess={actions.loadStudents}
+          />
           <EditStudentModal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSuccess={() => loadStudents()}
-            student={selectedStudent}
+            isOpen={actions.isEditModalOpen}
+            onClose={() => actions.setIsEditModalOpen(false)}
+            onSuccess={actions.loadStudents}
+            student={actions.selectedStudent}
           />
         </>
       )}

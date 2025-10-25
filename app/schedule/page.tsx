@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,6 +24,7 @@ import {
   MoreHorizontal,
   Users,
   GraduationCap,
+  RefreshCw,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -33,11 +34,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { classesAPI, type Class } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 
-export default function SchedulePage() {
+interface Class {
+  id: string
+  student_id: string
+  teacher_id: string
+  subject: string
+  class_date: string
+  start_time: string
+  duration: number
+  status: "scheduled" | "completed" | "cancelled" | "no_show"
+  notes?: string
+  student?: { name: string; phone: string }
+  teacher?: { name: string; phone: string }
+}
+
+// Custom Hook for Schedule Page Actions
+function useSchedulePageActions() {
   const [classes, setClasses] = useState<Class[]>([])
   const [filteredClasses, setFilteredClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,44 +61,54 @@ export default function SchedulePage() {
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadClasses()
-  }, [])
-
-  useEffect(() => {
-    filterClasses()
-  }, [classes, searchTerm, statusFilter, currentWeek])
-
-  const loadClasses = async () => {
+  const loadClasses = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await classesAPI.getAll()
-      setClasses(data)
+      const response = await fetch("/api/classes")
+      if (!response.ok) throw new Error("Failed to load classes")
+      const data = await response.json()
+      setClasses(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error loading classes:", error)
       toast({
         title: "Error",
-        description: "Failed to load classes",
+        description: "Failed to load classes. Please try again.",
         variant: "destructive",
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const filterClasses = () => {
-    let filtered = classes
+  useEffect(() => {
+    loadClasses()
+  }, [loadClasses])
 
-    // Filter by current week
+  useEffect(() => {
+    const getWeekStart = (date: Date) => {
+      const start = new Date(date)
+      const day = start.getDay()
+      const diff = start.getDate() - day
+      start.setDate(diff)
+      start.setHours(0, 0, 0, 0)
+      return start
+    }
+
+    const getWeekEnd = (date: Date) => {
+      const end = getWeekStart(date)
+      end.setDate(end.getDate() + 6)
+      end.setHours(23, 59, 59, 999)
+      return end
+    }
+
     const weekStart = getWeekStart(currentWeek)
     const weekEnd = getWeekEnd(currentWeek)
 
-    filtered = filtered.filter((classItem) => {
+    let filtered = classes.filter((classItem) => {
       const classDate = new Date(classItem.class_date)
       return classDate >= weekStart && classDate <= weekEnd
     })
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(
         (classItem) =>
@@ -93,12 +118,10 @@ export default function SchedulePage() {
       )
     }
 
-    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((classItem) => classItem.status === statusFilter)
     }
 
-    // Sort by date and time
     filtered.sort((a, b) => {
       const dateA = new Date(`${a.class_date}T${a.start_time}`)
       const dateB = new Date(`${b.class_date}T${b.start_time}`)
@@ -106,22 +129,122 @@ export default function SchedulePage() {
     })
 
     setFilteredClasses(filtered)
-  }
+  }, [classes, searchTerm, statusFilter, currentWeek])
 
-  const getWeekStart = (date: Date) => {
-    const start = new Date(date)
-    const day = start.getDay()
-    const diff = start.getDate() - day
-    start.setDate(diff)
-    start.setHours(0, 0, 0, 0)
-    return start
-  }
+  const handleStatusChange = useCallback(
+    async (classId: string, newStatus: string) => {
+      try {
+        let statusUpdate = ""
+        let noteUpdate = ""
 
-  const getWeekEnd = (date: Date) => {
-    const end = getWeekStart(date)
-    end.setDate(end.getDate() + 6)
-    end.setHours(23, 59, 59, 999)
-    return end
+        switch (newStatus) {
+          case "attend":
+            statusUpdate = "completed"
+            noteUpdate = "Student attended the class"
+            break
+          case "cancel_student":
+            statusUpdate = "cancelled"
+            noteUpdate = "Cancelled by student"
+            break
+          case "cancel_teacher":
+            statusUpdate = "cancelled"
+            noteUpdate = "Cancelled by teacher"
+            break
+          case "scheduled":
+            statusUpdate = "scheduled"
+            noteUpdate = "Class scheduled"
+            break
+          default:
+            return
+        }
+
+        const response = await fetch(`/api/classes/${classId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: statusUpdate, notes: noteUpdate }),
+        })
+
+        if (!response.ok) throw new Error("Failed to update status")
+
+        setClasses((prev) =>
+          prev.map((c) => (c.id === classId ? { ...c, status: statusUpdate as any, notes: noteUpdate } : c)),
+        )
+
+        toast({
+          title: "Success",
+          description: `Class status updated to ${statusUpdate}`,
+        })
+      } catch (error) {
+        console.error("Error updating class status:", error)
+        toast({
+          title: "Error",
+          description: "Failed to update class status. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [toast],
+  )
+
+  const handleDeleteClass = useCallback(
+    async (classId: string) => {
+      if (!window.confirm("Are you sure you want to delete this class?")) return
+
+      try {
+        const response = await fetch(`/api/classes/${classId}`, { method: "DELETE" })
+        if (!response.ok) throw new Error("Failed to delete")
+
+        setClasses((prev) => prev.filter((c) => c.id !== classId))
+        toast({
+          title: "Success",
+          description: "Class deleted successfully",
+        })
+      } catch (error) {
+        console.error("Error deleting class:", error)
+        toast({
+          title: "Error",
+          description: "Failed to delete class. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [toast],
+  )
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await loadClasses()
+      toast({
+        title: "Refreshed",
+        description: "Schedule updated successfully",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh. Please try again.",
+      })
+    }
+  }, [loadClasses, toast])
+
+  const getWeekRange = () => {
+    const getWeekStart = (date: Date) => {
+      const start = new Date(date)
+      const day = start.getDay()
+      const diff = start.getDate() - day
+      start.setDate(diff)
+      return start
+    }
+
+    const getWeekEnd = (date: Date) => {
+      const end = getWeekStart(date)
+      end.setDate(end.getDate() + 6)
+      return end
+    }
+
+    const start = getWeekStart(currentWeek)
+    const end = getWeekEnd(currentWeek)
+    return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
   }
 
   const navigateWeek = (direction: "prev" | "next") => {
@@ -136,73 +259,26 @@ export default function SchedulePage() {
     })
   }
 
-  const handleStatusChange = async (classId: string, newStatus: string) => {
-    try {
-      let statusUpdate = ""
-      let noteUpdate = ""
-
-      switch (newStatus) {
-        case "attend":
-          statusUpdate = "completed"
-          noteUpdate = "Student attended the class"
-          break
-        case "cancel_student":
-          statusUpdate = "cancelled"
-          noteUpdate = "Cancelled by student"
-          break
-        case "cancel_teacher":
-          statusUpdate = "cancelled"
-          noteUpdate = "Cancelled by teacher"
-          break
-        case "scheduled":
-          statusUpdate = "scheduled"
-          noteUpdate = "Class scheduled"
-          break
-        default:
-          return
-      }
-
-      await classesAPI.update(classId, {
-        status: statusUpdate as any,
-        notes: noteUpdate,
-      })
-
-      // Update local state
-      setClasses((prev) =>
-        prev.map((c) => (c.id === classId ? { ...c, status: statusUpdate as any, notes: noteUpdate } : c)),
-      )
-
-      toast({
-        title: "Success",
-        description: `Class status updated to ${statusUpdate}`,
-      })
-    } catch (error) {
-      console.error("Error updating class status:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update class status",
-        variant: "destructive",
-      })
-    }
+  return {
+    classes,
+    filteredClasses,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    currentWeek,
+    navigateWeek,
+    getWeekRange,
+    handleStatusChange,
+    handleDeleteClass,
+    handleRefresh,
+    loadClasses,
   }
+}
 
-  const handleDeleteClass = async (classId: string) => {
-    try {
-      await classesAPI.delete(classId)
-      setClasses((prev) => prev.filter((c) => c.id !== classId))
-      toast({
-        title: "Success",
-        description: "Class deleted successfully",
-      })
-    } catch (error) {
-      console.error("Error deleting class:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete class",
-        variant: "destructive",
-      })
-    }
-  }
+export default function SchedulePage() {
+  const actions = useSchedulePageActions()
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -239,18 +315,22 @@ export default function SchedulePage() {
     }
   }
 
-  const getWeekRange = () => {
-    const start = getWeekStart(currentWeek)
-    const end = getWeekEnd(currentWeek)
-    return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+  const getStats = () => {
+    const total = actions.filteredClasses.length
+    const scheduled = actions.filteredClasses.filter((c) => c.status === "scheduled").length
+    const completed = actions.filteredClasses.filter((c) => c.status === "completed").length
+    const cancelled = actions.filteredClasses.filter((c) => c.status === "cancelled").length
+
+    return { total, scheduled, completed, cancelled }
   }
 
+  const stats = getStats()
+
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":")
-    const hour = Number.parseInt(hours)
-    const period = hour >= 12 ? "PM" : "AM"
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
-    return `${displayHour}:${minutes} ${period}`
+    const [hours, minutes] = time.split(":").map(Number)
+    const period = hours >= 12 ? "PM" : "AM"
+    const displayHour = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
+    return `${displayHour}:${String(minutes).padStart(2, "0")} ${period}`
   }
 
   const formatDate = (dateString: string) => {
@@ -262,35 +342,12 @@ export default function SchedulePage() {
     })
   }
 
-  const getStats = () => {
-    const total = filteredClasses.length
-    const scheduled = filteredClasses.filter((c) => c.status === "scheduled").length
-    const completed = filteredClasses.filter((c) => c.status === "completed").length
-    const cancelled = filteredClasses.filter((c) => c.status === "cancelled").length
-
-    return { total, scheduled, completed, cancelled }
-  }
-
-  const stats = getStats()
-
-  if (loading) {
+  if (actions.loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="space-y-3">
-              <div className="h-10 bg-slate-200 rounded w-64"></div>
-              <div className="h-6 bg-slate-200 rounded w-96"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-32 bg-slate-200 rounded-xl"></div>
-              ))}
-            </div>
-
-            <div className="h-96 bg-slate-200 rounded-xl"></div>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading schedule...</p>
         </div>
       </div>
     )
@@ -315,10 +372,16 @@ export default function SchedulePage() {
             </h1>
             <p className="text-slate-600">Manage and organize all class schedules</p>
           </div>
-          <Button className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg">
-            <Plus className="w-4 h-4 mr-2" />
-            New Class
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg">
+              <Plus className="w-4 h-4 mr-2" />
+              New Class
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -386,14 +449,24 @@ export default function SchedulePage() {
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               {/* Week Navigation */}
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className="border-slate-200">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => actions.navigateWeek("prev")}
+                  className="border-slate-200"
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <div className="text-center px-4">
-                  <p className="font-semibold text-slate-900">{getWeekRange()}</p>
+                  <p className="font-semibold text-slate-900">{actions.getWeekRange()}</p>
                   <p className="text-xs text-slate-600">Week Schedule</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className="border-slate-200">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => actions.navigateWeek("next")}
+                  className="border-slate-200"
+                >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -404,12 +477,12 @@ export default function SchedulePage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     placeholder="Search classes..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={actions.searchTerm}
+                    onChange={(e) => actions.setSearchTerm(e.target.value)}
                     className="pl-10 w-full sm:w-64 bg-white border-slate-200"
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={actions.statusFilter} onValueChange={actions.setStatusFilter}>
                   <SelectTrigger className="w-full sm:w-40 border-slate-200">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -424,7 +497,7 @@ export default function SchedulePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {filteredClasses.length === 0 ? (
+            {actions.filteredClasses.length === 0 ? (
               <div className="text-center py-16">
                 <Calendar className="w-20 h-20 text-slate-300 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">No Classes This Week</h3>
@@ -452,7 +525,7 @@ export default function SchedulePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredClasses.map((classItem, index) => (
+                      {actions.filteredClasses.map((classItem, index) => (
                         <TableRow key={classItem.id} className="hover:bg-slate-50 transition-colors">
                           <TableCell className="text-center font-medium text-slate-600">{index + 1}</TableCell>
 
@@ -483,20 +556,17 @@ export default function SchedulePage() {
                           </TableCell>
 
                           <TableCell>
-                            <Link
-                              href={`/teachers/${classItem.teacher_id}`}
-                              className="flex items-center gap-2 group hover:bg-emerald-50 rounded-lg p-2 transition-colors"
-                            >
+                            <div className="flex items-center gap-2 group">
                               <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <GraduationCap className="w-4 h-4 text-emerald-600" />
                               </div>
                               <div>
-                                <div className="font-semibold text-emerald-600 group-hover:text-emerald-800 transition-colors">
+                                <div className="font-semibold text-emerald-600">
                                   {classItem.teacher?.name || "Unknown"}
                                 </div>
                                 <div className="text-xs text-slate-500">{classItem.teacher?.phone || "No phone"}</div>
                               </div>
-                            </Link>
+                            </div>
                           </TableCell>
 
                           <TableCell className="text-center">
@@ -527,7 +597,7 @@ export default function SchedulePage() {
                                       : "cancel_teacher"
                                     : "scheduled"
                               }
-                              onValueChange={(value) => handleStatusChange(classItem.id, value)}
+                              onValueChange={(value) => actions.handleStatusChange(classItem.id, value)}
                             >
                               <SelectTrigger className="w-40 mx-auto border-slate-300">
                                 <SelectValue />
@@ -577,7 +647,7 @@ export default function SchedulePage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-red-600"
-                                  onClick={() => handleDeleteClass(classItem.id)}
+                                  onClick={() => actions.handleDeleteClass(classItem.id)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Delete Class

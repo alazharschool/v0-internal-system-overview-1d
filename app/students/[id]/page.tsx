@@ -27,7 +27,6 @@ import { useToast } from "@/hooks/use-toast"
 import { EditClassModal } from "@/components/modals/edit-class-modal"
 import { EditStudentModal } from "@/components/modals/edit-student-modal"
 import { ScheduleClassModal } from "@/components/modals/schedule-class-modal"
-import { toastMessages } from "@/utils/toast-messages"
 
 interface MonthlyStats {
   total_classes: number
@@ -37,12 +36,20 @@ interface MonthlyStats {
   total_hours: number
 }
 
+interface WeeklyClass {
+  day: string
+  start_time: string
+  end_time: string
+  subject: string
+}
+
 export default function StudentDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
   const [student, setStudent] = useState<Student | null>(null)
   const [classes, setClasses] = useState<Class[]>([])
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklyClass[]>([])
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({
     total_classes: 0,
     completed: 0,
@@ -52,7 +59,6 @@ export default function StudentDetailPage() {
   })
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(new Date())
-  const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({})
   const [editingStudent, setEditingStudent] = useState(false)
   const [editingClass, setEditingClass] = useState<Class | null>(null)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
@@ -79,6 +85,11 @@ export default function StudentDetailPage() {
 
       setStudent(studentData)
 
+      // Load weekly schedule from student data
+      if (studentData.weekly_schedule && Array.isArray(studentData.weekly_schedule)) {
+        setWeeklySchedule(studentData.weekly_schedule)
+      }
+
       // Filter classes for this student and selected month
       const monthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1)
       const monthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0)
@@ -97,13 +108,6 @@ export default function StudentDetailPage() {
         })
 
       setClasses(studentClasses)
-
-      // Initialize editing notes
-      const notes: { [key: string]: string } = {}
-      studentClasses.forEach((cls) => {
-        notes[cls.id] = cls.notes || ""
-      })
-      setEditingNotes(notes)
 
       // Calculate monthly statistics
       const stats: MonthlyStats = {
@@ -136,32 +140,15 @@ export default function StudentDetailPage() {
       await classesAPI.update(classId, { status: newStatus as any })
       await loadStudentData()
       toast({
-        title: toastMessages.class.statusUpdated.title,
-        description: toastMessages.class.statusUpdated.description,
+        title: "Success",
+        description: "Class status updated successfully!",
         className: "bg-green-50 border-green-200",
       })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "❌ خطأ",
-        description: "فشل تحديث حالة الحصة",
-      })
-    }
-  }
-
-  const handleNotesUpdate = async (classId: string) => {
-    try {
-      await classesAPI.update(classId, { notes: editingNotes[classId] })
-      toast({
-        title: "✅ تم تحديث الملاحظات",
-        description: "تم حفظ الملاحظات بنجاح",
-        className: "bg-green-50 border-green-200",
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "❌ خطأ",
-        description: "فشل تحديث الملاحظات",
+        title: "Error",
+        description: "Failed to update class status",
       })
     }
   }
@@ -219,7 +206,7 @@ export default function StudentDetailPage() {
         </Button>
         <Button onClick={() => setScheduleModalOpen(true)} className="bg-green-600 hover:bg-green-700">
           <Calendar className="h-4 w-4 mr-2" />
-          إضافة حصة جديدة
+          Schedule New Class
         </Button>
         <Button onClick={() => setEditingStudent(true)} className="bg-blue-600 hover:bg-blue-700">
           <Edit className="h-4 w-4 mr-2" />
@@ -323,17 +310,41 @@ export default function StudentDetailPage() {
                   </div>
                 )}
               </div>
-
-              {student.notes && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-500 mb-1">Notes</p>
-                  <p className="text-gray-700">{student.notes}</p>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Weekly Schedule */}
+      {weeklySchedule && weeklySchedule.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly Class Schedule</CardTitle>
+            <CardDescription>Regular classes throughout the week</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {weeklySchedule.map((schedule, index) => (
+                <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{schedule.day}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{schedule.subject}</p>
+                      <div className="flex items-center gap-2 mt-2 text-sm">
+                        <Clock className="h-4 w-4 text-emerald-600" />
+                        <span className="font-medium">
+                          {schedule.start_time} - {schedule.end_time}
+                        </span>
+                      </div>
+                    </div>
+                    <Badge className="bg-emerald-100 text-emerald-800">Recurring</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Monthly Statistics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -515,6 +526,7 @@ export default function StudentDetailPage() {
           setScheduleModalOpen(false)
           loadStudentData()
         }}
+        studentId={student.id}
       />
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Plus, Search, MoreVertical, Mail, Phone, DollarSign, Calendar, Home, Trash2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,13 +18,13 @@ interface Teacher {
   email: string
   phone: string
   subject: string
-  subjects?: string[]
   hourly_rate: number
   status: "active" | "inactive"
   join_date: string
 }
 
-export default function TeachersPage() {
+// Custom Hook for Teacher Page Actions
+function useTeacherPageActions() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [filteredTeachers, setFilteredTeachers] = useState<Teacher[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -33,34 +33,30 @@ export default function TeachersPage() {
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadTeachers()
-  }, [])
-
-  useEffect(() => {
-    filterTeachers()
-  }, [teachers, searchQuery, statusFilter])
-
-  const loadTeachers = async () => {
+  const loadTeachers = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch("/api/teachers")
       if (!response.ok) throw new Error("Failed to load teachers")
       const data = await response.json()
-      setTeachers(data)
+      setTeachers(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error loading teachers:", error)
       toast({
         title: "Error",
-        description: "Failed to load teachers",
+        description: "Failed to load teachers. Please try again.",
         variant: "destructive",
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const filterTeachers = () => {
+  useEffect(() => {
+    loadTeachers()
+  }, [loadTeachers])
+
+  useEffect(() => {
     let filtered = teachers
 
     if (searchQuery) {
@@ -77,45 +73,75 @@ export default function TeachersPage() {
     }
 
     setFilteredTeachers(filtered)
-  }
+  }, [teachers, searchQuery, statusFilter])
 
-  const handleDeleteTeacher = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete ${name}?`)) return
+  const handleDeleteTeacher = useCallback(
+    async (id: string, name: string) => {
+      if (!window.confirm(`Are you sure you want to delete ${name}?`)) return
 
+      try {
+        const response = await fetch(`/api/teachers/${id}`, { method: "DELETE" })
+        if (!response.ok) throw new Error("Failed to delete teacher")
+
+        toast({
+          title: "Success",
+          description: "Teacher deleted successfully",
+        })
+        await loadTeachers()
+      } catch (error) {
+        console.error("Error deleting teacher:", error)
+        toast({
+          title: "Error",
+          description: "Failed to delete teacher. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [toast, loadTeachers],
+  )
+
+  const handleRefresh = useCallback(async () => {
     try {
-      const response = await fetch(`/api/teachers/${id}`, { method: "DELETE" })
-      if (!response.ok) throw new Error("Failed to delete teacher")
-
+      await loadTeachers()
       toast({
-        title: "Success",
-        description: "Teacher deleted successfully",
+        title: "Refreshed",
+        description: "Teacher list updated successfully",
       })
-      loadTeachers()
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete teacher",
         variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh. Please try again.",
       })
     }
-  }
+  }, [loadTeachers, toast])
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+  return {
+    teachers,
+    filteredTeachers,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    isAddModalOpen,
+    setIsAddModalOpen,
+    loading,
+    handleDeleteTeacher,
+    handleRefresh,
+    loadTeachers,
   }
+}
+
+export default function TeachersPage() {
+  const actions = useTeacherPageActions()
 
   const stats = {
-    total: teachers.length,
-    active: teachers.filter((t) => t.status === "active").length,
-    inactive: teachers.filter((t) => t.status === "inactive").length,
+    total: actions.teachers.length,
+    active: actions.teachers.filter((t) => t.status === "active").length,
+    inactive: actions.teachers.filter((t) => t.status === "inactive").length,
   }
 
-  if (loading) {
+  if (actions.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -146,12 +172,12 @@ export default function TeachersPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={loadTeachers} variant="outline" className="border-slate-200 bg-transparent">
+            <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
             <Button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => actions.setIsAddModalOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -205,15 +231,15 @@ export default function TeachersPage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     placeholder="Search teachers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={actions.searchQuery}
+                    onChange={(e) => actions.setSearchQuery(e.target.value)}
                     className="pl-10 bg-white border-slate-200"
                   />
                 </div>
               </div>
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                value={actions.statusFilter}
+                onChange={(e) => actions.setStatusFilter(e.target.value as any)}
                 className="px-4 py-2 border border-slate-200 rounded-md bg-white text-slate-700 text-sm"
               >
                 <option value="all">All Status</option>
@@ -228,27 +254,31 @@ export default function TeachersPage() {
         <Card className="shadow-sm border-slate-200">
           <CardHeader>
             <CardTitle>All Teachers</CardTitle>
-            <CardDescription>Showing {filteredTeachers.length} teachers</CardDescription>
+            <CardDescription>Showing {actions.filteredTeachers.length} teachers</CardDescription>
           </CardHeader>
           <CardContent>
-            {filteredTeachers.length === 0 ? (
+            {actions.filteredTeachers.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500 mb-4">No teachers found</p>
-                <Button onClick={() => setIsAddModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={() => actions.setIsAddModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Add First Teacher
                 </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTeachers.map((teacher) => (
+                {actions.filteredTeachers.map((teacher) => (
                   <Card key={teacher.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center space-x-3">
                           <Avatar className="h-10 w-10">
                             <AvatarFallback className="bg-emerald-100 text-emerald-700 font-semibold">
-                              {getInitials(teacher.name)}
+                              {teacher.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -263,7 +293,10 @@ export default function TeachersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => actions.handleDeleteTeacher(teacher.id, teacher.name)}
+                            >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
@@ -304,7 +337,12 @@ export default function TeachersPage() {
         </Card>
       </div>
 
-      <AddTeacherModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} onSuccess={() => loadTeachers()} />
+      {/* Add Teacher Modal */}
+      <AddTeacherModal
+        open={actions.isAddModalOpen}
+        onOpenChange={actions.setIsAddModalOpen}
+        onSuccess={actions.loadTeachers}
+      />
     </div>
   )
 }

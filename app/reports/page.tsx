@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -31,16 +31,101 @@ import {
   PieChartIcon,
   LineChartIcon,
   FileText,
+  RefreshCw,
 } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"]
 
-export default function ReportsPage() {
+// Custom Hook for Reports Page Actions
+function useReportsPageActions() {
   const [reportType, setReportType] = useState("overview")
   const [dateRange, setDateRange] = useState("month")
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  // Sample data for charts
+  const loadReports = useCallback(async () => {
+    try {
+      setLoading(true)
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    } catch (error) {
+      console.error("Error loading reports:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load reports. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => {
+    loadReports()
+  }, [loadReports])
+
+  const handleExportReport = useCallback(() => {
+    try {
+      const reportData = {
+        type: reportType,
+        dateRange: dateRange,
+        generatedAt: new Date().toISOString(),
+      }
+
+      const json = JSON.stringify(reportData, null, 2)
+      const blob = new Blob([json], { type: "application/json" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `report-${reportType}-${new Date().toISOString().split("T")[0]}.json`
+      a.click()
+
+      toast({
+        title: "Success",
+        description: "Report exported successfully",
+      })
+    } catch (error) {
+      console.error("Error exporting report:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export report. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }, [reportType, dateRange, toast])
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await loadReports()
+      toast({
+        title: "Refreshed",
+        description: "Reports updated successfully",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh. Please try again.",
+      })
+    }
+  }, [loadReports, toast])
+
+  return {
+    reportType,
+    setReportType,
+    dateRange,
+    setDateRange,
+    loading,
+    handleExportReport,
+    handleRefresh,
+  }
+}
+
+export default function ReportsPage() {
+  const actions = useReportsPageActions()
+
   const monthlyRevenue = [
     { month: "Jan", revenue: 4500, students: 45 },
     { month: "Feb", revenue: 5200, students: 52 },
@@ -84,6 +169,17 @@ export default function ReportsPage() {
 
   const stats = getStats()
 
+  if (actions.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading reports...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -100,11 +196,11 @@ export default function ReportsPage() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 Reports & Analytics
               </h1>
-              <p className="text-slate-600 text-lg">Comprehensive insights and performance analytics.</p>
+              <p className="text-slate-600 text-lg">Comprehensive insights and performance analytics</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Select value={reportType} onValueChange={setReportType}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={actions.reportType} onValueChange={actions.setReportType}>
               <SelectTrigger className="w-48 border-slate-200">
                 <SelectValue placeholder="Report Type" />
               </SelectTrigger>
@@ -115,7 +211,7 @@ export default function ReportsPage() {
                 <SelectItem value="performance">Performance</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={dateRange} onValueChange={setDateRange}>
+            <Select value={actions.dateRange} onValueChange={actions.setDateRange}>
               <SelectTrigger className="w-32 border-slate-200">
                 <SelectValue placeholder="Period" />
               </SelectTrigger>
@@ -126,7 +222,14 @@ export default function ReportsPage() {
                 <SelectItem value="year">Year</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg">
+            <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button
+              onClick={actions.handleExportReport}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export Report
             </Button>
@@ -225,18 +328,16 @@ export default function ReportsPage() {
                 <LineChartIcon className="w-5 h-5 text-blue-600" />
                 Monthly Revenue & Students
               </CardTitle>
-              <CardDescription>Revenue and student enrollment trends over time</CardDescription>
+              <CardDescription>Revenue and student enrollment trends</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={monthlyRevenue}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
+                  <YAxis />
                   <Tooltip />
-                  <Bar yAxisId="left" dataKey="revenue" fill="#3B82F6" />
-                  <Line yAxisId="right" type="monotone" dataKey="students" stroke="#10B981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -259,7 +360,6 @@ export default function ReportsPage() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -336,18 +436,7 @@ export default function ReportsPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <span className="font-medium text-slate-900">{teacher.rating}</span>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <div
-                                key={star}
-                                className={`w-3 h-3 ${
-                                  star <= Math.floor(teacher.rating) ? "text-yellow-400 fill-current" : "text-slate-300"
-                                }`}
-                              >
-                                ⭐
-                              </div>
-                            ))}
-                          </div>
+                          <span className="text-yellow-400">★</span>
                         </div>
                       </TableCell>
                       <TableCell>

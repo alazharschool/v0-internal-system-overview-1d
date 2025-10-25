@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Plus, Award, Download, Eye, Calendar, CheckCircle, Clock, Home, GraduationCap } from "lucide-react"
+import { Search, Plus, Award, Download, Eye, Calendar, CheckCircle, Clock, Home, RefreshCw } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 interface Certificate {
   id: string
@@ -34,95 +35,154 @@ interface Certificate {
   totalHours: number
 }
 
-export default function CertificatesPage() {
+// Custom Hook for Certificates Page Actions
+function useCertificatesPageActions() {
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [filteredCertificates, setFilteredCertificates] = useState<Certificate[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "pending" | "revoked">("all")
-  const [certificates] = useState<Certificate[]>([
-    {
-      id: "1",
-      studentName: "Ahmed Mohamed Ali",
-      studentId: "1",
-      courseName: "Advanced Quran Memorization",
-      subject: "Quran Memorization",
-      issueDate: "2024-01-15",
-      completionDate: "2024-01-10",
-      grade: "Excellent",
-      certificateNumber: "CERT-2024-001",
-      status: "issued",
-      teacherName: "Dr. Mohamed Abdelrahman",
-      totalHours: 120,
-    },
-    {
-      id: "2",
-      studentName: "Fatima Abdullah",
-      studentId: "2",
-      courseName: "Arabic Grammar Fundamentals",
-      subject: "Arabic Language",
-      issueDate: "2024-01-20",
-      completionDate: "2024-01-18",
-      grade: "Very Good",
-      certificateNumber: "CERT-2024-002",
-      status: "issued",
-      teacherName: "Prof. Aisha Ahmed",
-      totalHours: 80,
-    },
-    {
-      id: "3",
-      studentName: "Omar Hassan",
-      studentId: "3",
-      courseName: "Islamic Studies Foundation",
-      subject: "Islamic Studies",
-      issueDate: "",
-      completionDate: "2024-01-22",
-      grade: "Good",
-      certificateNumber: "CERT-2024-003",
-      status: "pending",
-      teacherName: "Dr. Ahmed Hassan",
-      totalHours: 100,
-    },
-    {
-      id: "4",
-      studentName: "Khadija Salem",
-      studentId: "4",
-      courseName: "Hadith Sciences",
-      subject: "Hadith Studies",
-      issueDate: "2024-01-12",
-      completionDate: "2024-01-08",
-      grade: "Excellent",
-      certificateNumber: "CERT-2024-004",
-      status: "issued",
-      teacherName: "Prof. Fatima Salem",
-      totalHours: 150,
-    },
-    {
-      id: "5",
-      studentName: "Youssef Ibrahim",
-      studentId: "5",
-      courseName: "Tajweed Mastery",
-      subject: "Tajweed",
-      issueDate: "",
-      completionDate: "2024-01-25",
-      grade: "Very Good",
-      certificateNumber: "CERT-2024-005",
-      status: "pending",
-      teacherName: "Sheikh Khaled Mohamed",
-      totalHours: 90,
-    },
-  ])
+  const { toast } = useToast()
 
-  const filteredCertificates = certificates.filter((certificate) => {
-    const matchesSearch =
-      certificate.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      certificate.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      certificate.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      certificate.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  const loadCertificates = useCallback(async () => {
+    try {
+      setLoading(true)
+      // Mock data for now
+      const mockCerts: Certificate[] = [
+        {
+          id: "1",
+          studentName: "Ahmed Mohamed",
+          studentId: "1",
+          courseName: "Advanced Quran",
+          subject: "Quran Memorization",
+          issueDate: "2024-01-15",
+          completionDate: "2024-01-10",
+          grade: "Excellent",
+          certificateNumber: "CERT-2024-001",
+          status: "issued",
+          teacherName: "Dr. Mohamed",
+          totalHours: 120,
+        },
+      ]
+      setCertificates(mockCerts)
+    } catch (error) {
+      console.error("Error loading certificates:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load certificates. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
-    const matchesStatus = statusFilter === "all" || certificate.status === statusFilter
+  useEffect(() => {
+    loadCertificates()
+  }, [loadCertificates])
 
-    return matchesSearch && matchesStatus
-  })
+  useEffect(() => {
+    let filtered = certificates
 
-  const getStatusBadge = (status: Certificate["status"]) => {
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (cert) =>
+          cert.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          cert.courseName.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((cert) => cert.status === statusFilter)
+    }
+
+    setFilteredCertificates(filtered)
+  }, [certificates, searchTerm, statusFilter])
+
+  const handleIssueCertificate = useCallback(
+    async (id: string) => {
+      try {
+        toast({
+          title: "Certificate Issued",
+          description: "Certificate has been issued successfully",
+        })
+        await loadCertificates()
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to issue certificate. Please try again.",
+        })
+      }
+    },
+    [toast, loadCertificates],
+  )
+
+  const handleExportReport = useCallback(() => {
+    try {
+      const csv = [
+        ["Certificate #", "Student", "Course", "Grade", "Status"],
+        ...filteredCertificates.map((c) => [c.certificateNumber, c.studentName, c.courseName, c.grade, c.status]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n")
+
+      const blob = new Blob([csv], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `certificates-${new Date().toISOString().split("T")[0]}.csv`
+      a.click()
+
+      toast({
+        title: "Success",
+        description: "Report exported successfully",
+      })
+    } catch (error) {
+      console.error("Error exporting report:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export report. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }, [filteredCertificates, toast])
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await loadCertificates()
+      toast({
+        title: "Refreshed",
+        description: "Certificates updated successfully",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh. Please try again.",
+      })
+    }
+  }, [loadCertificates, toast])
+
+  return {
+    certificates,
+    filteredCertificates,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    handleIssueCertificate,
+    handleExportReport,
+    handleRefresh,
+    loadCertificates,
+  }
+}
+
+export default function CertificatesPage() {
+  const actions = useCertificatesPageActions()
+
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "issued":
         return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Issued</Badge>
@@ -148,30 +208,22 @@ export default function CertificatesPage() {
     }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+  const stats = {
+    total: actions.certificates.length,
+    issued: actions.certificates.filter((c) => c.status === "issued").length,
+    pending: actions.certificates.filter((c) => c.status === "pending").length,
   }
 
-  const getStats = () => {
-    const total = certificates.length
-    const issued = certificates.filter((c) => c.status === "issued").length
-    const pending = certificates.filter((c) => c.status === "pending").length
-    const thisMonth = certificates.filter((c) => {
-      if (!c.issueDate) return false
-      const issueDate = new Date(c.issueDate)
-      const now = new Date()
-      return issueDate.getMonth() === now.getMonth() && issueDate.getFullYear() === now.getFullYear()
-    }).length
-
-    return { total, issued, pending, thisMonth }
+  if (actions.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading certificates...</p>
+        </div>
+      </div>
+    )
   }
-
-  const stats = getStats()
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -189,13 +241,19 @@ export default function CertificatesPage() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 Certificates Management
               </h1>
-              <p className="text-slate-600 text-lg">Issue and manage student certificates and achievements.</p>
+              <p className="text-slate-600 text-lg">Issue and manage student certificates</p>
             </div>
           </div>
-          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg">
-            <Plus className="w-4 h-4 mr-2" />
-            Issue Certificate
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={actions.handleRefresh} variant="outline" className="border-slate-200 bg-transparent">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg">
+              <Plus className="w-4 h-4 mr-2" />
+              Issue Certificate
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -241,20 +299,6 @@ export default function CertificatesPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-purple-700 font-medium text-sm">This Month</p>
-                  <p className="text-3xl font-bold text-purple-900">{stats.thisMonth}</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
-                  <GraduationCap className="w-6 h-6 text-purple-700" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filters and Search */}
@@ -265,15 +309,15 @@ export default function CertificatesPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
-                    placeholder="Search certificates by student, course, or certificate number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search certificates..."
+                    value={actions.searchTerm}
+                    onChange={(e) => actions.setSearchTerm(e.target.value)}
                     className="pl-10 bg-white border-slate-200"
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                <Tabs value={actions.statusFilter} onValueChange={(value) => actions.setStatusFilter(value as any)}>
                   <TabsList className="bg-slate-100">
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="issued">Issued</TabsTrigger>
@@ -281,13 +325,22 @@ export default function CertificatesPage() {
                     <TabsTrigger value="revoked">Revoked</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Button variant="outline" size="sm" className="border-slate-200 bg-transparent">
+                <Button
+                  onClick={actions.handleExportReport}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-200 bg-transparent"
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Export
                 </Button>
               </div>
             </div>
           </CardHeader>
+        </Card>
+
+        {/* Certificates Table */}
+        <Card className="shadow-sm border-slate-200">
           <CardContent>
             <div className="rounded-lg border border-slate-200 overflow-hidden">
               <Table>
@@ -305,35 +358,26 @@ export default function CertificatesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCertificates.length === 0 ? (
+                  {actions.filteredCertificates.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8">
                         <Award className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 mb-4">
-                          {searchTerm || statusFilter !== "all"
-                            ? "No certificates match your filters"
-                            : "No certificates found"}
-                        </p>
-                        {!searchTerm && statusFilter === "all" && (
-                          <Button className="bg-emerald-600 hover:bg-emerald-700">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Issue First Certificate
-                          </Button>
-                        )}
+                        <p className="text-slate-500 mb-4">No certificates found</p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredCertificates.map((certificate, index) => (
+                    actions.filteredCertificates.map((certificate, index) => (
                       <TableRow key={certificate.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-slate-600">{index + 1}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="w-8 h-8 ring-2 ring-slate-200">
-                              <AvatarImage
-                                src={`https://api.dicebear.com/7.x/initials/svg?seed=${certificate.studentName}`}
-                              />
-                              <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-xs font-semibold">
-                                {getInitials(certificate.studentName)}
+                              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white text-xs font-semibold">
+                                {certificate.studentName
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
                             <Link
@@ -368,7 +412,6 @@ export default function CertificatesPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -384,7 +427,7 @@ export default function CertificatesPage() {
                                 Download PDF
                               </DropdownMenuItem>
                               {certificate.status === "pending" && (
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => actions.handleIssueCertificate(certificate.id)}>
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Issue Certificate
                                 </DropdownMenuItem>
