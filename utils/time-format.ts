@@ -240,6 +240,60 @@ export function generateTimeSlots12Hour(startHour: number, endHour: number, inte
   return slots
 }
 
+export function formatTime12Hour(time: string): string {
+  try {
+    if (!time || typeof time !== "string") return "Invalid time"
+
+    const [hours, minutes] = time.split(":").map(Number)
+
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return "Invalid time"
+    }
+
+    const period = hours >= 12 ? "PM" : "AM"
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+
+    return `${displayHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`
+  } catch (error) {
+    console.error("Error formatting time to 12 hour:", error)
+    return "Invalid time"
+  }
+}
+
+export function getCurrentDateTime(): { date: string; time: string } {
+  const now = new Date()
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ]
+
+  const dayName = days[now.getDay()]
+  const monthName = months[now.getMonth()]
+  const date = now.getDate()
+  const year = now.getFullYear()
+
+  const hours = now.getHours()
+  const minutes = now.getMinutes()
+  const period = hours >= 12 ? "PM" : "AM"
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+
+  const dateString = `${dayName}, ${date} ${monthName} ${year}`
+  const timeString = `${displayHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`
+
+  return { date: dateString, time: timeString }
+}
+
 export function addMinutesToTime(time: string, minutes: number): string {
   try {
     if (!time || typeof time !== "string" || typeof minutes !== "number") {

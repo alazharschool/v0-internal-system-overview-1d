@@ -6,34 +6,84 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, GraduationCap, Calendar, BookOpen } from "lucide-react"
+import { Users, GraduationCap, Calendar, BookOpen, Edit, Clock, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { dashboardAPI, classesAPI, type Class, type DashboardStats } from "@/lib/database"
-import { formatEgyptTime, formatStudentTime, formatDateWithDay, getDayName } from "@/utils/time-format"
+import { dashboardAPI, classesAPI, trialClassesAPI, type Class, type DashboardStats } from "@/lib/database"
+import { formatTime12Hour, getCurrentDateTime } from "@/utils/time-format"
 import { redirect } from "next/navigation"
+import { EditClassModal } from "@/components/modals/edit-class-modal"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [todayClasses, setTodayClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentDateTime, setCurrentDateTime] = useState<{ date: string; time: string }>({ date: "", time: "" })
+  const [editingClass, setEditingClass] = useState<Class | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     loadDashboardData()
+    updateDateTime()
+    const dateTimeInterval = setInterval(updateDateTime, 60000) // Update every minute
+
+    return () => clearInterval(dateTimeInterval)
   }, [])
+
+  const updateDateTime = () => {
+    setCurrentDateTime(getCurrentDateTime())
+  }
 
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [statsData, classesData] = await Promise.all([dashboardAPI.getStats(), classesAPI.getAll()])
+      const [statsData, classesData, trialClassesData] = await Promise.all([
+        dashboardAPI.getStats(),
+        classesAPI.getAll(),
+        trialClassesAPI.getAll(),
+      ])
 
       setStats(statsData)
 
       // Filter today's classes
       const today = new Date().toISOString().split("T")[0]
-      const todayClassesFiltered = classesData.filter((c) => c.class_date === today)
-      setTodayClasses(todayClassesFiltered)
+
+      // Convert trial classes to class format
+      const convertedTrialClasses: Class[] = trialClassesData
+        .filter((trial) => trial.date === today && trial.status !== "cancelled")
+        .map((trial) => ({
+          id: `trial-${trial.id}`,
+          student_id: "",
+          teacher_id: trial.teacher_id || "",
+          subject: trial.subject,
+          class_date: trial.date,
+          start_time: trial.time,
+          end_time: "",
+          duration: trial.duration,
+          status: trial.status as any,
+          notes: `Trial Class - ${trial.student_name}`,
+          student: { name: trial.student_name, phone: trial.student_phone },
+          teacher: trial.teacher,
+          created_at: "",
+          updated_at: "",
+          isTrialClass: true,
+        })) as any
+
+      const regularClasses = classesData.filter((c) => c.class_date === today)
+      const allClasses = [...regularClasses, ...convertedTrialClasses]
+
+      // Sort by start time
+      allClasses.sort((a, b) => a.start_time.localeCompare(b.start_time))
+
+      setTodayClasses(allClasses)
     } catch (error) {
       console.error("Error loading dashboard data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -41,10 +91,29 @@ export default function DashboardPage() {
 
   const handleStatusChange = async (classId: string, newStatus: string) => {
     try {
-      await classesAPI.update(classId, { status: newStatus as any })
+      if (classId.startsWith("trial-")) {
+        const trialId = classId.replace("trial-", "")
+        await trialClassesAPI.update(trialId, { status: newStatus as any })
+      } else {
+        await classesAPI.update(classId, { status: newStatus as any })
+      }
+
+      // Update local state
+      setTodayClasses((prev) => prev.map((c) => (c.id === classId ? { ...c, status: newStatus as any } : c)))
+
+      toast({
+        title: "Success",
+        description: "Class status updated successfully!",
+      })
+
       await loadDashboardData()
     } catch (error) {
       console.error("Error updating class status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update class status",
+        variant: "destructive",
+      })
     }
   }
 
@@ -63,6 +132,21 @@ export default function DashboardPage() {
     }
   }
 
+  const getStatusSelectColor = (status: string) => {
+    switch (status) {
+      case "scheduled":
+        return "border-blue-500 bg-blue-50"
+      case "completed":
+        return "border-green-500 bg-green-50"
+      case "cancelled":
+        return "border-red-500 bg-red-50"
+      case "no_show":
+        return "border-yellow-500 bg-yellow-50"
+      default:
+        return ""
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -76,10 +160,22 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-600">Welcome to Al-Azhar Online School Management System</p>
+      {/* Header with Date and Time */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-blue-50 to-amber-50 p-6 rounded-lg border border-blue-100">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-600 mt-1">Welcome to Al-Azhar Online School Management System</p>
+        </div>
+        <div className="flex flex-col gap-2 text-right">
+          <div className="flex items-center gap-2 text-slate-700">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            <span className="text-lg font-semibold">{currentDateTime.date}</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-700">
+            <Clock className="h-5 w-5 text-amber-600" />
+            <span className="text-lg font-semibold">{currentDateTime.time}</span>
+          </div>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -113,7 +209,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{todayClasses.length}</div>
-            <p className="text-xs text-muted-foreground">{formatDateWithDay(new Date())}</p>
+            <p className="text-xs text-muted-foreground">Classes scheduled for today</p>
           </CardContent>
         </Card>
 
@@ -123,8 +219,8 @@ export default function DashboardPage() {
             <BookOpen className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total_trial_classes || 0}</div>
-            <p className="text-xs text-muted-foreground">Pending trials</p>
+            <div className="text-2xl font-bold">{todayClasses.filter((c) => (c as any).isTrialClass).length}</div>
+            <p className="text-xs text-muted-foreground">Trial classes today</p>
           </CardContent>
         </Card>
       </div>
@@ -134,10 +230,8 @@ export default function DashboardPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Today's Classes</CardTitle>
-              <CardDescription>
-                {getDayName(new Date())}, {new Date().toLocaleDateString()}
-              </CardDescription>
+              <CardTitle>Today's Classes Schedule</CardTitle>
+              <CardDescription>All scheduled classes and trial sessions for today</CardDescription>
             </div>
             <Button asChild>
               <Link href="/schedule">View All Classes</Link>
@@ -146,41 +240,49 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           {todayClasses.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-12 text-slate-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-slate-300" />
-              <p>No classes scheduled for today</p>
+              <p className="text-lg font-medium">No classes scheduled for today</p>
             </div>
           ) : (
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Time</TableHead>
                     <TableHead>Student Info</TableHead>
                     <TableHead>Teacher Info</TableHead>
-                    <TableHead>Egypt Time</TableHead>
-                    <TableHead>Student Time</TableHead>
+                    <TableHead>Subject</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {todayClasses.map((classItem) => (
-                    <TableRow key={classItem.id}>
+                    <TableRow key={classItem.id} className={(classItem as any).isTrialClass ? "bg-orange-50" : ""}>
+                      <TableCell>
+                        {(classItem as any).isTrialClass ? (
+                          <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1 w-fit">
+                            <AlertCircle className="h-3 w-3" />
+                            Trial
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-blue-100 text-blue-800">Regular</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <p className="font-medium">{getDayName(classItem.class_date)}</p>
-                          <p className="text-sm text-slate-600">
-                            {new Date(classItem.class_date).toLocaleDateString()}
-                          </p>
+                          <p className="font-medium text-sm">{formatTime12Hour(classItem.start_time)}</p>
+                          <p className="text-xs text-slate-600">Egypt Time</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <Link
                             href={`/students/${classItem.student_id}`}
-                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                           >
                             {classItem.student?.name || "Unknown"}
                           </Link>
@@ -189,30 +291,23 @@ export default function DashboardPage() {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <Link
-                            href={`/teachers/${classItem.teacher_id}`}
-                            className="font-medium text-green-600 hover:text-green-800 hover:underline"
-                          >
-                            {classItem.teacher?.name || "Unknown"}
-                          </Link>
-                          <p className="text-sm text-slate-600">{classItem.teacher?.phone || "No phone"}</p>
+                          {classItem.teacher ? (
+                            <>
+                              <Link
+                                href={`/teachers/${classItem.teacher_id}`}
+                                className="font-medium text-green-600 hover:text-green-800 hover:underline cursor-pointer"
+                              >
+                                {classItem.teacher?.name || "Unassigned"}
+                              </Link>
+                              <p className="text-sm text-slate-600">{classItem.teacher?.phone || "No phone"}</p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-slate-600">Not assigned</p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-medium">{formatEgyptTime(classItem.start_time)}</p>
-                          <p className="text-sm text-slate-600">to {formatEgyptTime(classItem.end_time)}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-medium">
-                            {formatStudentTime(classItem.start_time, classItem.student?.address || "")}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            to {formatStudentTime(classItem.end_time, classItem.student?.address || "")}
-                          </p>
-                        </div>
+                        <p className="font-medium text-sm">{classItem.subject}</p>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{classItem.duration} min</Badge>
@@ -222,7 +317,7 @@ export default function DashboardPage() {
                           value={classItem.status}
                           onValueChange={(value) => handleStatusChange(classItem.id, value)}
                         >
-                          <SelectTrigger className="w-[130px]">
+                          <SelectTrigger className={`w-[130px] border-2 ${getStatusSelectColor(classItem.status)}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -234,7 +329,18 @@ export default function DashboardPage() {
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-slate-600 max-w-xs truncate">{classItem.notes || "No notes"}</p>
+                        {!classItem.id.startsWith("trial-") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingClass(classItem)
+                              setIsEditModalOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -283,6 +389,17 @@ export default function DashboardPage() {
           </Link>
         </Card>
       </div>
+
+      {/* Edit Class Modal */}
+      <EditClassModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingClass(null)
+        }}
+        classItem={editingClass}
+        onSuccess={loadDashboardData}
+      />
     </div>
   )
 }

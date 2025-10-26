@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -143,8 +143,8 @@ function useStudentPageActions() {
     try {
       await loadStudents()
       toast({
-        title: "Refreshed",
-        description: "Student list updated successfully",
+        title: "Success",
+        description: "Student list refreshed successfully",
       })
     } catch (error) {
       toast({
@@ -386,7 +386,12 @@ export default function StudentsPage() {
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium text-slate-900">{student.name}</span>
+                            <button
+                              onClick={() => actions.handleViewDetails(student.id)}
+                              className="font-medium text-slate-900 hover:text-emerald-600 hover:underline transition-colors"
+                            >
+                              {student.name}
+                            </button>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -406,7 +411,7 @@ export default function StudentsPage() {
                               size="sm"
                               onClick={() => actions.handleScheduleClass(student)}
                               title="Schedule New Class"
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 hover:bg-blue-100"
                             >
                               <Calendar className="h-4 w-4 text-blue-600" />
                             </Button>
@@ -415,7 +420,7 @@ export default function StudentsPage() {
                               size="sm"
                               onClick={() => actions.handleEditStudent(student)}
                               title="Edit Student"
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 hover:bg-amber-100"
                             >
                               <Edit className="h-4 w-4 text-amber-600" />
                             </Button>
@@ -424,7 +429,7 @@ export default function StudentsPage() {
                               size="sm"
                               onClick={() => actions.handleViewDetails(student.id)}
                               title="View Details"
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 hover:bg-emerald-100"
                             >
                               <Users className="h-4 w-4 text-emerald-600" />
                             </Button>
@@ -433,7 +438,7 @@ export default function StudentsPage() {
                               size="sm"
                               onClick={() => actions.handleDeleteStudent(student.id, student.name)}
                               title="Delete Student"
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 hover:bg-red-100"
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
