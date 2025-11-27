@@ -91,6 +91,26 @@ export interface DashboardStats {
   today_classes: number
 }
 
+export interface Course {
+  id: string
+  student_id: string
+  teacher_id: string
+  subject: string
+  total_classes: number
+  completed_classes: number
+  remaining_classes: number
+  start_date: string
+  end_date: string
+  status: "active" | "completed" | "paused"
+  progress_percentage: number
+  monthly_fee: number
+  notes?: string
+  student?: { name: string; email: string }
+  teacher?: { name: string; hourly_rate: number }
+  created_at?: string
+  updated_at?: string
+}
+
 // ===========================
 // STUDENTS API
 // ===========================
@@ -486,6 +506,141 @@ export const trialClassesAPI = {
       return true
     } catch (error) {
       console.error("Error deleting trial class:", error)
+      return false
+    }
+  },
+}
+
+// ===========================
+// COURSES API
+// ===========================
+export const coursesAPI = {
+  async getAll(): Promise<Course[]> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .select(
+          `
+          *,
+          student:students(id, name, email),
+          teacher:teachers(id, name, hourly_rate)
+        `,
+        )
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Supabase error fetching courses:", error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error("Error fetching courses:", error)
+      return []
+    }
+  },
+
+  async getById(id: string): Promise<Course | null> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .select(
+          `
+          *,
+          student:students(id, name, email),
+          teacher:teachers(id, name, hourly_rate)
+        `,
+        )
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("Supabase error fetching course:", error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error("Error fetching course:", error)
+      return null
+    }
+  },
+
+  async getByStudentId(studentId: string): Promise<Course[]> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .select(
+          `
+          *,
+          student:students(id, name, email),
+          teacher:teachers(id, name, hourly_rate)
+        `,
+        )
+        .eq("student_id", studentId)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Supabase error fetching student courses:", error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error("Error fetching student courses:", error)
+      return []
+    }
+  },
+
+  async create(courseData: Omit<Course, "id" | "created_at" | "updated_at">): Promise<Course | null> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .insert([
+          {
+            ...courseData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating course:", error)
+      throw error
+    }
+  },
+
+  async update(id: string, updates: Partial<Course>): Promise<Course | null> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating course:", error)
+      throw error
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from("courses").delete().eq("id", id)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error("Error deleting course:", error)
       return false
     }
   },

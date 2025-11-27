@@ -37,6 +37,10 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "start": "next start",
+    "supabase:add-column": "tsx scripts/supabase/migrate-add-column.ts",
+    "supabase:check-schema": "tsx scripts/supabase/check-db-schema.ts",
+    "supabase:migrate": "NODE_ENV=production tsx scripts/supabase/run-migrations.ts",
+    "supabase:migrate:dev": "tsx scripts/supabase/run-migrations.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
