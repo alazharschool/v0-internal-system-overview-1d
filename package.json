@@ -37,10 +37,6 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "start": "next start",
-    "supabase:add-column": "tsx scripts/supabase/migrate-add-column.ts",
-    "supabase:check-schema": "tsx scripts/supabase/check-db-schema.ts",
-    "supabase:migrate": "NODE_ENV=production tsx scripts/supabase/run-migrations.ts",
-    "supabase:migrate:dev": "tsx scripts/supabase/run-migrations.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -65,6 +61,7 @@
     "@radix-ui/react-tabs": "latest",
     "@radix-ui/react-toast": "latest",
     "@radix-ui/react-tooltip": "^1.0.7",
+    "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@tanstack/react-query": "^5.8.4",
     "@tanstack/react-table": "^8.10.7",

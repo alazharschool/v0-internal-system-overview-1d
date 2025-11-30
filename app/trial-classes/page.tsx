@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Calendar, CheckCircle, XCircle, Clock, Edit, Home, RefreshCw } from "lucide-react"
+import { Calendar, CheckCircle, XCircle, Clock, Edit, Home, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ScheduleTrialClassModal } from "@/components/modals/schedule-trial-class-modal"
@@ -251,6 +251,7 @@ function useTrialClassesPageActions() {
 
 export default function TrialClassesPage() {
   const actions = useTrialClassesPageActions()
+  const router = useRouter()
 
   const getStatusBadge = (status: string) => {
     const variants: { [key: string]: any } = {
@@ -354,85 +355,72 @@ export default function TrialClassesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Trial Classes</CardTitle>
-          <CardDescription>Manage and track trial class sessions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div>
+              <CardTitle>Trial Classes List</CardTitle>
+              <CardDescription>All trial class sessions and their details</CardDescription>
+            </div>
+            <div className="flex gap-2">
               <Input
-                placeholder="Search by student name, email, or subject..."
+                placeholder="Search by name, email, or subject..."
                 value={actions.searchQuery}
                 onChange={(e) => actions.setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="w-64"
               />
+              <Select value={actions.statusFilter} onValueChange={actions.setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="no_show">No Show</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={actions.statusFilter} onValueChange={actions.setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="no_show">No Show</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {actions.filteredClasses.length === 0 ? (
+        </CardHeader>
+        <CardContent>
+          {actions.filteredClasses.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No trial classes found</p>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-gray-500 py-8">
-                      No trial classes found
-                    </TableCell>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Outcome</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (
-                  actions.filteredClasses.map((trialClass, index) => (
+                </TableHeader>
+                <TableBody>
+                  {actions.filteredClasses.map((trialClass) => (
                     <TableRow key={trialClass.id}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>
-                        <Link
-                          href={`/students/${trialClass.id}`}
-                          className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium transition-colors"
+                        <button
+                          onClick={() => {
+                            router.push(`/students?email=${encodeURIComponent(trialClass.student_email)}`)
+                          }}
+                          className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
                         >
                           {trialClass.student_name}
-                        </Link>
+                        </button>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col text-sm">
-                          <span>{trialClass.student_email}</span>
-                          <span className="text-gray-500">{trialClass.student_phone}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{trialClass.subject}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{trialClass.date}</span>
-                          <span className="text-sm">{trialClass.time}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{trialClass.duration} min</Badge>
-                      </TableCell>
+                      <TableCell>{trialClass.student_email}</TableCell>
+                      <TableCell>{trialClass.student_phone}</TableCell>
+                      <TableCell>{trialClass.subject}</TableCell>
+                      <TableCell>{trialClass.date}</TableCell>
+                      <TableCell>{trialClass.time}</TableCell>
                       <TableCell>
                         <Select
                           value={trialClass.status}
@@ -449,24 +437,40 @@ export default function TrialClassesPage() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => actions.handleEdit(trialClass)}>
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => actions.handleReschedule(trialClass)}>
-                            <Calendar className="h-3 w-3 mr-1" />
-                            Reschedule
-                          </Button>
-                        </div>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            trialClass.outcome === "enrolled"
+                              ? "default"
+                              : trialClass.outcome === "declined"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className={
+                            trialClass.outcome === "enrolled"
+                              ? "bg-green-500"
+                              : trialClass.outcome === "declined"
+                                ? "bg-red-500"
+                                : ""
+                          }
+                        >
+                          {trialClass.outcome}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => actions.handleEdit(trialClass)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => actions.handleReschedule(trialClass)}>
+                          <Calendar className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -5,29 +5,22 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// ===========================
+// TYPE DEFINITIONS
+// ===========================
+
 export interface Student {
   id: string
   name: string
   email: string
-  phone?: string
-  age?: number
-  grade?: string
-  subject?: string
-  parent_name?: string
-  parent_phone?: string
-  parent_email?: string
-  address?: string
-  status: "active" | "inactive" | "graduated"
-  enrollment_date?: string
-  notes?: string
-  created_at?: string
-  updated_at?: string
-  weekly_schedule?: Array<{
-    day: string
-    start_time: string
-    end_time: string
-    subject: string
-  }>
+  assigned_teacher: string
+  study_days: string[]
+  study_time: string
+  lesson_duration: number
+  monthly_payments: number
+  custom_notes?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Teacher {
@@ -35,80 +28,55 @@ export interface Teacher {
   name: string
   email: string
   phone: string
-  subject: string
-  subjects?: string[]
+  country: string
   hourly_rate: number
-  status: "active" | "inactive"
-  join_date: string
-  bio?: string
-  experience?: number
-  zoom_link?: string
-  created_at?: string
-  updated_at?: string
+  assigned_students?: string[]
+  monthly_salary?: number
+  created_at: string
+  updated_at: string
 }
 
-export interface Class {
+export interface Lesson {
   id: string
   student_id: string
   teacher_id: string
-  subject: string
-  class_date: string
+  lesson_date: string
   start_time: string
-  end_time?: string
   duration: number
-  status: "scheduled" | "completed" | "cancelled" | "no_show"
-  notes?: string
-  student?: { name: string; phone?: string }
-  teacher?: { name: string; phone?: string }
-  created_at?: string
-  updated_at?: string
+  attendance: "present" | "absent" | "no_lesson"
+  created_at: string
+  updated_at: string
 }
 
-export interface TrialClass {
+export interface Attendance {
   id: string
-  student_name: string
-  student_email: string
-  student_phone: string
-  subject: string
+  lesson_id: string
+  student_id: string
   date: string
-  time: string
-  duration: number
-  teacher_id?: string
-  teacher?: { name: string }
-  status: "scheduled" | "completed" | "cancelled" | "no_show"
-  outcome?: "pending" | "enrolled" | "declined"
-  parent_name?: string
-  parent_phone?: string
-  notes?: string
+  status: "present" | "absent" | "no_lesson"
+  created_at: string
+  updated_at: string
 }
 
-export interface DashboardStats {
-  total_students: number
-  active_students: number
-  total_teachers: number
-  active_teachers: number
-  total_classes: number
-  today_classes: number
-}
-
-export interface Course {
+export interface Invoice {
   id: string
   student_id: string
-  teacher_id: string
-  subject: string
-  total_classes: number
-  completed_classes: number
-  remaining_classes: number
-  start_date: string
-  end_date: string
-  status: "active" | "completed" | "paused"
-  progress_percentage: number
-  monthly_fee: number
-  notes?: string
-  student?: { name: string; email: string }
-  teacher?: { name: string; hourly_rate: number }
-  created_at?: string
-  updated_at?: string
+  month: string
+  amount: number
+  status: "paid" | "unpaid" | "overdue"
+  due_date: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Certificate {
+  id: string
+  student_id: string
+  completion_date: string
+  certificate_template: Record<string, any>
+  pdf_url?: string
+  created_at: string
+  updated_at: string
 }
 
 // ===========================
@@ -119,10 +87,7 @@ export const studentsAPI = {
     try {
       const { data, error } = await supabase.from("students").select("*").order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Supabase error fetching students:", error)
-        return []
-      }
+      if (error) throw error
       return data || []
     } catch (error) {
       console.error("Error fetching students:", error)
@@ -134,10 +99,7 @@ export const studentsAPI = {
     try {
       const { data, error } = await supabase.from("students").select("*").eq("id", id).single()
 
-      if (error) {
-        console.error("Supabase error fetching student:", error)
-        return null
-      }
+      if (error) throw error
       return data
     } catch (error) {
       console.error("Error fetching student:", error)
@@ -207,17 +169,8 @@ export const teachersAPI = {
     try {
       const { data, error } = await supabase.from("teachers").select("*").order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Supabase error fetching teachers:", error)
-        return []
-      }
-
-      return (
-        data?.map((teacher: any) => ({
-          ...teacher,
-          subjects: teacher.subjects || (teacher.subject ? [teacher.subject] : []),
-        })) || []
-      )
+      if (error) throw error
+      return data || []
     } catch (error) {
       console.error("Error fetching teachers:", error)
       return []
@@ -228,15 +181,8 @@ export const teachersAPI = {
     try {
       const { data, error } = await supabase.from("teachers").select("*").eq("id", id).single()
 
-      if (error) {
-        console.error("Supabase error fetching teacher:", error)
-        return null
-      }
-
-      return {
-        ...data,
-        subjects: data.subjects || (data.subject ? [data.subject] : []),
-      }
+      if (error) throw error
+      return data
     } catch (error) {
       console.error("Error fetching teacher:", error)
       return null
@@ -298,400 +244,219 @@ export const teachersAPI = {
 }
 
 // ===========================
-// CLASSES API
+// LESSONS API
 // ===========================
-export const classesAPI = {
-  async getAll(): Promise<Class[]> {
+export const lessonsAPI = {
+  async getAll(): Promise<Lesson[]> {
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .select(
-          `
-          *,
-          student:students(id, name, phone),
-          teacher:teachers(id, name, phone)
-        `,
-        )
-        .order("class_date", { ascending: false })
+      const { data, error } = await supabase.from("lessons").select("*").order("lesson_date", { ascending: false })
 
-      if (error) {
-        console.error("Supabase error fetching classes:", error)
-        return []
-      }
-
+      if (error) throw error
       return data || []
     } catch (error) {
-      console.error("Error fetching classes:", error)
+      console.error("Error fetching lessons:", error)
       return []
     }
   },
 
-  async getById(id: string): Promise<Class | null> {
+  async getTodayLessons(): Promise<Lesson[]> {
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .select(
-          `
-          *,
-          student:students(id, name, phone),
-          teacher:teachers(id, name, phone)
-        `,
-        )
-        .eq("id", id)
-        .single()
-
-      if (error) {
-        console.error("Supabase error fetching class:", error)
-        return null
-      }
-
-      return data
-    } catch (error) {
-      console.error("Error fetching class:", error)
-      return null
-    }
-  },
-
-  async getByStudentId(studentId: string): Promise<Class[]> {
-    try {
-      const { data, error } = await supabase
-        .from("classes")
-        .select(
-          `
-          *,
-          student:students(id, name, phone),
-          teacher:teachers(id, name, phone)
-        `,
-        )
-        .eq("student_id", studentId)
-        .order("class_date", { ascending: false })
-
-      if (error) {
-        console.error("Supabase error fetching student classes:", error)
-        return []
-      }
-
-      return data || []
-    } catch (error) {
-      console.error("Error fetching student classes:", error)
-      return []
-    }
-  },
-
-  async create(classData: Omit<Class, "id" | "created_at" | "updated_at">): Promise<Class | null> {
-    try {
-      const { data, error } = await supabase
-        .from("classes")
-        .insert([
-          {
-            ...classData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error creating class:", error)
-      throw error
-    }
-  },
-
-  async update(id: string, updates: Partial<Class>): Promise<Class | null> {
-    try {
-      const { data, error } = await supabase
-        .from("classes")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error updating class:", error)
-      throw error
-    }
-  },
-
-  async delete(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase.from("classes").delete().eq("id", id)
-      if (error) throw error
-      return true
-    } catch (error) {
-      console.error("Error deleting class:", error)
-      return false
-    }
-  },
-}
-
-// ===========================
-// TRIAL CLASSES API
-// ===========================
-export const trialClassesAPI = {
-  async getAll(): Promise<TrialClass[]> {
-    try {
-      const { data, error } = await supabase
-        .from("trial_classes")
-        .select("*, teacher:teachers(id, name)")
-        .order("date", { ascending: false })
-
-      if (error) {
-        console.error("Supabase error fetching trial classes:", error)
-        return []
-      }
-
-      return data || []
-    } catch (error) {
-      console.error("Error fetching trial classes:", error)
-      return []
-    }
-  },
-
-  async getById(id: string): Promise<TrialClass | null> {
-    try {
-      const { data, error } = await supabase
-        .from("trial_classes")
-        .select("*, teacher:teachers(id, name)")
-        .eq("id", id)
-        .single()
-
-      if (error) {
-        console.error("Supabase error fetching trial class:", error)
-        return null
-      }
-
-      return data
-    } catch (error) {
-      console.error("Error fetching trial class:", error)
-      return null
-    }
-  },
-
-  async create(trialClass: Omit<TrialClass, "id">): Promise<TrialClass | null> {
-    try {
-      const { data, error } = await supabase.from("trial_classes").insert([trialClass]).select().single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error creating trial class:", error)
-      throw error
-    }
-  },
-
-  async update(id: string, updates: Partial<TrialClass>): Promise<TrialClass | null> {
-    try {
-      const { data, error } = await supabase.from("trial_classes").update(updates).eq("id", id).select().single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error updating trial class:", error)
-      throw error
-    }
-  },
-
-  async delete(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase.from("trial_classes").delete().eq("id", id)
-      if (error) throw error
-      return true
-    } catch (error) {
-      console.error("Error deleting trial class:", error)
-      return false
-    }
-  },
-}
-
-// ===========================
-// COURSES API
-// ===========================
-export const coursesAPI = {
-  async getAll(): Promise<Course[]> {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .select(
-          `
-          *,
-          student:students(id, name, email),
-          teacher:teachers(id, name, hourly_rate)
-        `,
-        )
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Supabase error fetching courses:", error)
-        return []
-      }
-
-      return data || []
-    } catch (error) {
-      console.error("Error fetching courses:", error)
-      return []
-    }
-  },
-
-  async getById(id: string): Promise<Course | null> {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .select(
-          `
-          *,
-          student:students(id, name, email),
-          teacher:teachers(id, name, hourly_rate)
-        `,
-        )
-        .eq("id", id)
-        .single()
-
-      if (error) {
-        console.error("Supabase error fetching course:", error)
-        return null
-      }
-
-      return data
-    } catch (error) {
-      console.error("Error fetching course:", error)
-      return null
-    }
-  },
-
-  async getByStudentId(studentId: string): Promise<Course[]> {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .select(
-          `
-          *,
-          student:students(id, name, email),
-          teacher:teachers(id, name, hourly_rate)
-        `,
-        )
-        .eq("student_id", studentId)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Supabase error fetching student courses:", error)
-        return []
-      }
-
-      return data || []
-    } catch (error) {
-      console.error("Error fetching student courses:", error)
-      return []
-    }
-  },
-
-  async create(courseData: Omit<Course, "id" | "created_at" | "updated_at">): Promise<Course | null> {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .insert([
-          {
-            ...courseData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error creating course:", error)
-      throw error
-    }
-  },
-
-  async update(id: string, updates: Partial<Course>): Promise<Course | null> {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error("Error updating course:", error)
-      throw error
-    }
-  },
-
-  async delete(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase.from("courses").delete().eq("id", id)
-      if (error) throw error
-      return true
-    } catch (error) {
-      console.error("Error deleting course:", error)
-      return false
-    }
-  },
-}
-
-// ===========================
-// DASHBOARD API
-// ===========================
-export const dashboardAPI = {
-  async getStats(): Promise<DashboardStats> {
-    try {
-      const [studentsRes, teachersRes, classesRes] = await Promise.all([
-        supabase.from("students").select("*", { count: "exact", head: true }),
-        supabase.from("teachers").select("*", { count: "exact", head: true }),
-        supabase.from("classes").select("*", { count: "exact", head: true }),
-      ])
-
       const today = new Date().toISOString().split("T")[0]
-      const { count: todayCount } = await supabase
-        .from("classes")
-        .select("*", { count: "exact", head: true })
-        .eq("class_date", today)
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("*")
+        .eq("lesson_date", today)
+        .order("start_time", { ascending: true })
 
-      const { count: activeStudentsCount } = await supabase
-        .from("students")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active")
-
-      const { count: activeTeachersCount } = await supabase
-        .from("teachers")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active")
-
-      return {
-        total_students: studentsRes.count || 0,
-        active_students: activeStudentsCount || 0,
-        total_teachers: teachersRes.count || 0,
-        active_teachers: activeTeachersCount || 0,
-        total_classes: classesRes.count || 0,
-        today_classes: todayCount || 0,
-      }
+      if (error) throw error
+      return data || []
     } catch (error) {
-      console.error("Error fetching dashboard stats:", error)
-      return {
-        total_students: 0,
-        active_students: 0,
-        total_teachers: 0,
-        active_teachers: 0,
-        total_classes: 0,
-        today_classes: 0,
-      }
+      console.error("Error fetching today's lessons:", error)
+      return []
+    }
+  },
+
+  async create(lesson: Omit<Lesson, "id" | "created_at" | "updated_at">): Promise<Lesson | null> {
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .insert([
+          {
+            ...lesson,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating lesson:", error)
+      throw error
+    }
+  },
+
+  async update(id: string, updates: Partial<Lesson>): Promise<Lesson | null> {
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating lesson:", error)
+      throw error
+    }
+  },
+}
+
+// ===========================
+// ATTENDANCE API
+// ===========================
+export const attendanceAPI = {
+  async getByStudent(studentId: string, month: string): Promise<Attendance[]> {
+    try {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select("*")
+        .eq("student_id", studentId)
+        .like("date", `${month}%`)
+        .order("date", { ascending: true })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching attendance:", error)
+      return []
+    }
+  },
+
+  async update(id: string, status: "present" | "absent" | "no_lesson"): Promise<Attendance | null> {
+    try {
+      const { data, error } = await supabase
+        .from("attendance")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating attendance:", error)
+      throw error
+    }
+  },
+}
+
+// ===========================
+// INVOICES API
+// ===========================
+export const invoicesAPI = {
+  async getByStudent(studentId: string): Promise<Invoice[]> {
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("student_id", studentId)
+        .order("month", { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching invoices:", error)
+      return []
+    }
+  },
+
+  async create(invoice: Omit<Invoice, "id" | "created_at" | "updated_at">): Promise<Invoice | null> {
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .insert([
+          {
+            ...invoice,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating invoice:", error)
+      throw error
+    }
+  },
+
+  async updateStatus(id: string, status: "paid" | "unpaid" | "overdue"): Promise<Invoice | null> {
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating invoice:", error)
+      throw error
+    }
+  },
+}
+
+// ===========================
+// CERTIFICATES API
+// ===========================
+export const certificatesAPI = {
+  async getByStudent(studentId: string): Promise<Certificate[]> {
+    try {
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("*")
+        .eq("student_id", studentId)
+        .order("completion_date", { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching certificates:", error)
+      return []
+    }
+  },
+
+  async create(certificate: Omit<Certificate, "id" | "created_at" | "updated_at">): Promise<Certificate | null> {
+    try {
+      const { data, error } = await supabase
+        .from("certificates")
+        .insert([
+          {
+            ...certificate,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating certificate:", error)
+      throw error
     }
   },
 }

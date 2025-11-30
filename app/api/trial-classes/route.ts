@@ -1,4 +1,4 @@
-import { trialClassesAPI, type TrialClass } from "@/lib/database"
+import { trialClassesAPI, type TrialClass, studentsAPI } from "@/lib/database"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET() {
@@ -18,6 +18,30 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!body.student_name || !body.student_email || !body.student_phone || !body.subject || !body.date || !body.time) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    try {
+      const existingStudent = await studentsAPI
+        .getAll()
+        .then((students) => students.find((s) => s.email === body.student_email))
+
+      if (!existingStudent) {
+        await studentsAPI.create({
+          name: body.student_name,
+          email: body.student_email,
+          phone: body.student_phone,
+          parent_name: body.parent_name || "Not Provided",
+          parent_phone: body.parent_phone,
+          parent_email: body.parent_email,
+          grade: "N/A",
+          subject: body.subject,
+          status: "active",
+          enrollment_date: new Date().toISOString().split("T")[0],
+        })
+      }
+    } catch (studentError) {
+      console.error("Warning: Could not auto-create student:", studentError)
+      // Don't fail the trial class creation if student auto-create fails
     }
 
     const trialClass = await trialClassesAPI.create(body)
