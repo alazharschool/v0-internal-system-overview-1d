@@ -79,6 +79,57 @@ export interface Certificate {
   updated_at: string
 }
 
+export interface Class {
+  id: string
+  student_id: string
+  teacher_id: string
+  subject: string
+  class_date: string
+  start_time: string
+  end_time: string
+  duration: number
+  status: "scheduled" | "completed" | "cancelled"
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface TrialClass {
+  id: string
+  student_name: string
+  student_email: string
+  teacher_id: string
+  date: string
+  start_time: string
+  duration: number
+  status: "scheduled" | "completed" | "cancelled"
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface DashboardStats {
+  totalStudents: number
+  totalTeachers: number
+  totalLessons: number
+  totalRevenue: number
+  recentLessons: Lesson[]
+  upcomingLessons: Lesson[]
+}
+
+export interface Course {
+  id: string
+  name: string
+  description?: string
+  teacher_id: string
+  student_ids?: string[]
+  level: string
+  duration: number
+  price?: number
+  created_at: string
+  updated_at: string
+}
+
 // ===========================
 // STUDENTS API
 // ===========================
@@ -457,6 +508,290 @@ export const certificatesAPI = {
     } catch (error) {
       console.error("Error creating certificate:", error)
       throw error
+    }
+  },
+}
+
+// ===========================
+// CLASSES API
+// ===========================
+export const classesAPI = {
+  async getAll(): Promise<Class[]> {
+    try {
+      const { data, error } = await supabase.from("classes").select("*").order("class_date", { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching classes:", error)
+      return []
+    }
+  },
+
+  async getById(id: string): Promise<Class | null> {
+    try {
+      const { data, error } = await supabase.from("classes").select("*").eq("id", id).single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error fetching class:", error)
+      return null
+    }
+  },
+
+  async create(classData: Omit<Class, "id" | "created_at" | "updated_at">): Promise<Class | null> {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .insert([
+          {
+            student_id: classData.student_id,
+            teacher_id: classData.teacher_id,
+            subject: classData.subject,
+            class_date: classData.class_date,
+            start_time: classData.start_time,
+            end_time: classData.end_time,
+            duration: classData.duration,
+            status: classData.status,
+            notes: classData.notes,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating class:", error)
+      throw error
+    }
+  },
+
+  async update(id: string, updates: Partial<Class>): Promise<Class | null> {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating class:", error)
+      throw error
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from("classes").delete().eq("id", id)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error("Error deleting class:", error)
+      return false
+    }
+  },
+}
+
+// ===========================
+// TRIAL CLASSES API
+// ===========================
+export const trialClassesAPI = {
+  async getAll(): Promise<TrialClass[]> {
+    try {
+      const { data, error } = await supabase.from("trial_classes").select("*").order("created_at", { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching trial classes:", error)
+      return []
+    }
+  },
+
+  async create(trialClass: Omit<TrialClass, "id" | "created_at" | "updated_at">): Promise<TrialClass | null> {
+    try {
+      const { data, error } = await supabase
+        .from("trial_classes")
+        .insert([
+          {
+            ...trialClass,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating trial class:", error)
+      throw error
+    }
+  },
+
+  async update(id: string, updates: Partial<TrialClass>): Promise<TrialClass | null> {
+    try {
+      const { data, error } = await supabase
+        .from("trial_classes")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating trial class:", error)
+      throw error
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from("trial_classes").delete().eq("id", id)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error("Error deleting trial class:", error)
+      return false
+    }
+  },
+}
+
+// ===========================
+// DASHBOARD API
+// ===========================
+export const dashboardAPI = {
+  async getStats(): Promise<DashboardStats> {
+    try {
+      const [studentsData, teachersData, lessonsData, invoicesData] = await Promise.all([
+        supabase.from("students").select("id"),
+        supabase.from("teachers").select("id"),
+        supabase.from("lessons").select("*").order("lesson_date", { ascending: false }).limit(10),
+        supabase.from("invoices").select("amount").eq("status", "paid"),
+      ])
+
+      const totalRevenue = (invoicesData.data || []).reduce((sum, inv) => sum + (inv.amount || 0), 0)
+      const recentLessons = (lessonsData.data || []).slice(0, 5)
+      const upcomingLessons = (lessonsData.data || []).filter((l) => {
+        const lessonDate = new Date(l.lesson_date)
+        return lessonDate >= new Date()
+      })
+
+      return {
+        totalStudents: studentsData.data?.length || 0,
+        totalTeachers: teachersData.data?.length || 0,
+        totalLessons: lessonsData.data?.length || 0,
+        totalRevenue,
+        recentLessons: recentLessons as Lesson[],
+        upcomingLessons: upcomingLessons as Lesson[],
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error)
+      return {
+        totalStudents: 0,
+        totalTeachers: 0,
+        totalLessons: 0,
+        totalRevenue: 0,
+        recentLessons: [],
+        upcomingLessons: [],
+      }
+    }
+  },
+}
+
+// ===========================
+// COURSES API
+// ===========================
+export const coursesAPI = {
+  async getAll(): Promise<Course[]> {
+    try {
+      const { data, error } = await supabase.from("courses").select("*").order("created_at", { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching courses:", error)
+      return []
+    }
+  },
+
+  async getById(id: string): Promise<Course | null> {
+    try {
+      const { data, error } = await supabase.from("courses").select("*").eq("id", id).single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error fetching course:", error)
+      return null
+    }
+  },
+
+  async create(course: Omit<Course, "id" | "created_at" | "updated_at">): Promise<Course | null> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .insert([
+          {
+            ...course,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating course:", error)
+      throw error
+    }
+  },
+
+  async update(id: string, updates: Partial<Course>): Promise<Course | null> {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error updating course:", error)
+      throw error
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from("courses").delete().eq("id", id)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error("Error deleting course:", error)
+      return false
     }
   },
 }
