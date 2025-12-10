@@ -3,14 +3,20 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!supabaseUrl || !serviceRoleKey) {
-  console.error("[v0] Missing Supabase credentials")
-}
-
-const supabase = createClient(supabaseUrl!, serviceRoleKey!)
-
 export async function POST(request: Request) {
   try {
+    if (!supabaseUrl || !serviceRoleKey) {
+      return Response.json(
+        {
+          success: false,
+          error: "Supabase credentials not configured. Please add SUPABASE_SERVICE_ROLE_KEY to environment variables.",
+        },
+        { status: 500 },
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+
     console.log("[v0] Starting database initialization...")
 
     // 1. Create all tables
