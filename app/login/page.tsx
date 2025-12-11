@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { signInAdmin } from "@/lib/actions/auth"
 import { useToast } from "@/hooks/use-toast"
 import { AlertCircle, GraduationCap, Loader2 } from "lucide-react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -20,33 +18,44 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const router = useRouter()
   const { toast } = useToast()
+  const supabase = createClientComponentClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
+    if (!email || !password) {
+      setError("Please enter both email and password")
+      setLoading(false)
+      return
+    }
+
     try {
-      if (!email || !password) {
-        setError("Please enter both email and password")
-        setLoading(false)
+      // تسجيل الدخول باستخدام Supabase Auth
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        setError("Invalid login credentials. Please check email and password.")
+        console.error("Supabase login error:", signInError)
         return
       }
 
-      const result = await signInAdmin(email, password)
-
-      if (result.success) {
+      if (data?.user) {
         toast({
           title: "Success",
           description: "You have been signed in successfully!",
         })
         router.push("/dashboard")
       } else {
-        setError(result.error || "Failed to sign in")
+        setError("Failed to sign in. Please try again.")
       }
     } catch (err) {
-      setError("An error occurred. Please try again.")
-      console.error("Login error:", err)
+      console.error("Unexpected login error:", err)
+      setError("An unexpected error occurred. Please try again later.")
     } finally {
       setLoading(false)
     }
@@ -109,7 +118,7 @@ export default function LoginPage() {
 
           <div className="mt-4 p-3 bg-amber-50 rounded-lg text-sm text-amber-800">
             <p className="font-semibold mb-1">Demo Credentials:</p>
-            <p>Email: "admin@alazhar.school"</p>
+            <p>Email: admin@alazhar.school</p>
             <p>Password: mbanora1983</p>
           </div>
         </CardContent>
