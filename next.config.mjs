@@ -1,18 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true, // وضع وضعية React الصارمة لتحسين الأداء
-  experimental: {
-    appDir: true, // مفعل لتشغيل مجلد app/
-  },
+  output: "standalone",
   eslint: {
-    ignoreDuringBuilds: true, // تجاهل تحذيرات ESLint أثناء البناء
+    ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // تجاهل أخطاء TypeScript أثناء البناء
+    ignoreBuildErrors: true,
   },
-  images: {
-    unoptimized: true, // الصور غير محسّنة لتجنب مشاكل البناء
-  },
-}
+};
 
-export default nextConfig
+export default nextConfig;
