@@ -1,12 +1,16 @@
 import { createClient } from "@supabase/supabase-js"
+import { NextResponse } from "next/server"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
     if (!supabaseUrl || !serviceRoleKey) {
-      return Response.json(
+      return NextResponse.json(
         {
           success: false,
           error: "Supabase credentials not configured. Please add SUPABASE_SERVICE_ROLE_KEY to environment variables.",
@@ -15,7 +19,12 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
 
     console.log("[v0] Starting database initialization...")
 
@@ -376,14 +385,14 @@ export async function POST(request: Request) {
       console.log("[v0] Sample data already exists, skipping seeding")
     }
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       message: "Database initialized successfully",
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
     console.error("[v0] Database initialization error:", error)
-    return Response.json(
+    return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",

@@ -28,18 +28,13 @@
     "analyze": "cross-env ANALYZE=true next build",
     "build": "next build",
     "clean": "rm -rf .next out dist",
-    "db:generate": "supabase gen types typescript --project-id your-project-id --schema public > lib/database.types.ts",
-    "db:reset": "supabase db reset",
-    "db:seed": "tsx scripts/seed.ts",
     "dev": "next dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preinstall": "npx only-allow npm",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "start": "next start",
-    "type-check": "tsc --noEmit",
-    "verify": "tsx scripts/verify-setup.ts"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -73,7 +68,7 @@
     "framer-motion": "^11.15.0",
     "immer": "latest",
     "lucide-react": "^0.469.0",
-    "next": "15.5.7",
+    "next": "15.5.9",
     "next-themes": "^0.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -95,8 +90,8 @@
     "@typescript-eslint/parser": "^8.21.0",
     "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "15.5.7",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "15.5.9",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",
@@ -105,11 +100,12 @@
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.10",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   },
+  "packageManager": "pnpm@9.15.4",
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "npm": ">=9.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
