@@ -1,57 +1,92 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { createServerClient } from "@supabase/ssr"
 
-// محاكاة جلسة المستخدم
-function getFakeUser(req: NextRequest) {
-  // لو فيه كوكي باسم "fake_user" نعتبر المستخدم مسجّل دخول
-  const userCookie = req.cookies.get("fake_user");
-  if (userCookie) {
-    return { id: "123", name: "Test User" };
-  }
-  return null;
-}
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
 
-export function middleware(req: NextRequest) {
-  const user = getFakeUser(req);
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          res.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          res.cookies.set({ name, value: "", ...options })
+        },
+      },
+    }
+  )
 
-  // المسارات المحمية
-  const protectedPaths = [
+  // 1️⃣ التحقق من تسجيل الدخول
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = req.nextUrl.pathname
+
+  // 2️⃣ المسارات المحمية
+  const protectedRoutes = [
     "/",
+    "/dashboard",
     "/students",
     "/teachers",
     "/classes",
     "/schedule",
     "/payments",
     "/certificates",
-    "/trial-classes",
-  ];
+    "/admin",
+  ]
 
-  const isProtectedPath = protectedPaths.some(
-    (path) =>
-      req.nextUrl.pathname === path ||
-      req.nextUrl.pathname.startsWith(path + "/")
-  );
+  const isProtected = protectedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  )
 
-  // إعادة التوجيه إذا لم يكن المستخدم مسجّل الدخول
-  if (isProtectedPath && !user && req.nextUrl.pathname !== "/login") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+  if (!user && isProtected) {
+    return NextResponse.redirect(new URL("/auth/login", req.url))
   }
 
-  // إعادة التوجيه إذا المستخدم مسجّل الدخول وحاول الدخول لصفحة login
-  if (req.nextUrl.pathname === "/login" && user) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+  // 3️⃣ جلب الدور من profiles
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.redirect(new URL("/auth/error", req.url))
+    }
+
+    const role = profile.role
+
+    // 4️⃣ مسارات خاصة بالأدمن فقط
+    const adminOnlyRoutes = [
+      "/teachers",
+      "/payments",
+      "/certificates",
+      "/admin",
+    ]
+
+    const isAdminRoute = adminOnlyRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route + "/")
+    )
+
+    if (isAdminRoute && role !== "admin") {
+      return NextResponse.redirect(new URL("/unauthorized", req.url))
+    }
   }
 
-  return NextResponse.next();
+  return res
 }
 
 export const config = {
   matcher: [
-    // كل المسارات تقريبا باستثناء الملفات الثابتة والصور والفافيكون
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
-};
+}
