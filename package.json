@@ -71,7 +71,7 @@
     "framer-motion": "^10.16.5",
     "immer": "latest",
     "lucide-react": "^0.454.0",
-    "next": "15.1.3",
+    "next": "15.1.11",
     "next-themes": "latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
