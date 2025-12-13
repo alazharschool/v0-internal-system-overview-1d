@@ -1,32 +1,19 @@
-import { type NextRequest, NextResponse } from "next/server"
-
-const protectedRoutes = [
-  "/dashboard",
-  "/students",
-  "/teachers",
-  "/classes",
-  "/payments",
-  "/trial-lessons",
-  "/certificates",
-]
+import { updateSession } from "@/lib/supabase/middleware"
+import type { NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-  const token = request.cookies.get("auth-token")?.value
-
-  // Redirect to login if accessing protected routes without token
-  if (protectedRoutes.some((route) => pathname.startsWith(route)) && !token) {
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-
-  // Redirect to dashboard if accessing login with valid token
-  if (pathname === "/login" && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
-  return NextResponse.next()
+  return await updateSession(request)
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 }

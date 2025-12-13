@@ -9,9 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/hooks/use-toast"
 import { AlertCircle, GraduationCap, Loader2 } from "lucide-react"
-import { supabaseClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -19,7 +18,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,28 +31,29 @@ export default function LoginPage() {
     }
 
     try {
-      const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({
+      const supabase = createClient()
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        setError("Invalid login credentials. Please check email and password.")
-        console.error("Supabase login error:", signInError)
+        console.error("[v0] Supabase login error:", signInError)
+        setError("Invalid login credentials. Please check your email and password.")
         return
       }
 
       if (data?.user) {
-        toast({
-          title: "Success",
-          description: "You have been signed in successfully!",
-        })
-        router.push("/dashboard")
+        console.log("[v0] Login successful, user:", data.user.email)
+        // Redirect to dashboard
+        router.push("/")
+        router.refresh()
       } else {
         setError("Failed to sign in. Please try again.")
       }
     } catch (err) {
-      console.error("Unexpected login error:", err)
+      console.error("[v0] Unexpected login error:", err)
       setError("An unexpected error occurred. Please try again later.")
     } finally {
       setLoading(false)
