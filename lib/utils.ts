@@ -3,6 +3,16 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 
+// ========================
+// دالة cn لدمج الكلاسات
+// ========================
+export function cn(...classes: (string | undefined | false | null)[]) {
+  return classes.filter(Boolean).join(" ")
+}
+
+// ========================
+// دوال تسجيل الدخول والخروج والتحقق من الجلسة
+// ========================
 export async function signInAdmin(email: string, password: string) {
   const cookieStore = cookies()
 
