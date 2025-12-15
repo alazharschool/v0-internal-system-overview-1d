@@ -6,9 +6,9 @@ If you're getting the error: **"Could not find the 'weekly_schedule' column of '
 
 Run this command to fix it:
 
-\`\`\`bash
+```bash
 npm run supabase:add-column
-\`\`\`
+```
 
 ## Step-by-Step Setup
 
@@ -16,20 +16,20 @@ npm run supabase:add-column
 
 Make sure these variables are set in your `.env.local`:
 
-\`\`\`
+```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-\`\`\`
+```
 
 Get these from your Supabase project settings.
 
 ### 2. Initialize Database
 
 #### Option A: Automatic Migration (Recommended)
-\`\`\`bash
+```bash
 npm run supabase:migrate:dev
-\`\`\`
+```
 
 This will:
 - ✅ Drop existing tables (if any)
@@ -50,17 +50,17 @@ Run these in order in Supabase SQL Editor:
 
 If you already have a database and just need to add the `weekly_schedule` column:
 
-\`\`\`bash
+```bash
 npm run supabase:add-column
-\`\`\`
+```
 
 ### 4. Verify Schema
 
 Check if everything is set up correctly:
 
-\`\`\`bash
+```bash
 npm run supabase:check-schema
-\`\`\`
+```
 
 This will output:
 - ✅ Students table exists
@@ -95,32 +95,32 @@ This will output:
 ### Error: "Could not find the 'weekly_schedule' column"
 
 **Solution:** Run the migration
-\`\`\`bash
+```bash
 npm run supabase:add-column
-\`\`\`
+```
 
 ### Error: "Missing Supabase environment variables"
 
 **Solution:** Add to `.env.local`:
-\`\`\`
+```
 NEXT_PUBLIC_SUPABASE_URL=your_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
 SUPABASE_SUPABASE_SERVICE_ROLE_KEY=your_service_key
-\`\`\`
+```
 
 ### Error: "Could not find the students table"
 
 **Solution:** Initialize the database:
-\`\`\`bash
+```bash
 npm run supabase:migrate:dev
-\`\`\`
+```
 
 ### Students/Teachers not appearing
 
 **Solution:** Seed the database with sample data:
-\`\`\`bash
+```bash
 npm run supabase:migrate:dev
-\`\`\`
+```
 
 ## Architecture
 

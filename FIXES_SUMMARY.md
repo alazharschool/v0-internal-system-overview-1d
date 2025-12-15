@@ -104,15 +104,15 @@ Follow these steps in exact order:
 4. Click "Create user"
 
 ### Step 3: Verify Environment Variables
-\`\`\`env
+```env
 NEXT_PUBLIC_SUPABASE_URL=https://qumeveerinufukgpbcyk.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-\`\`\`
+```
 
 ### Step 4: Deploy
-\`\`\`bash
+```bash
 vercel --prod
-\`\`\`
+```
 
 ### Step 5: Test
 1. Visit: https://your-app.vercel.app/login

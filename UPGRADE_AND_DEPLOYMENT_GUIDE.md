@@ -57,7 +57,7 @@
 
 Create or update `.env.local` with the following:
 
-\`\`\`env
+```env
 # Supabase Configuration (REQUIRED)
 NEXT_PUBLIC_SUPABASE_URL=https://qumeveerinufukgpbcyk.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -69,7 +69,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 # Optional: Development redirect URL
 NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL=http://localhost:3000
-\`\`\`
+```
 
 ### Missing Environment Variables Checklist
 
@@ -93,7 +93,7 @@ The following variables are needed for full Supabase functionality:
 
 ### Step 1: Install Dependencies
 
-\`\`\`bash
+```bash
 # Using npm (recommended)
 npm install
 
@@ -102,7 +102,7 @@ pnpm install
 
 # Or using yarn
 yarn install
-\`\`\`
+```
 
 ### Step 2: Set Up Supabase
 
@@ -115,11 +115,11 @@ yarn install
 
 Execute this in your Supabase SQL Editor or using the Supabase dashboard:
 
-\`\`\`sql
+```sql
 -- This will be handled by Supabase Auth automatically when you sign up through the app
 -- OR you can create it via Supabase Dashboard:
 -- Authentication → Users → Invite User
-\`\`\`
+```
 
 **Alternatively**, use the login page to create the first admin account (if email confirmation is disabled in Supabase).
 
@@ -136,12 +136,12 @@ This creates:
 - 150 daily classes with proper scheduling
 
 **OR** run via API after deployment:
-\`\`\`bash
+```bash
 # After deployment, visit:
 https://your-app.vercel.app/api/db/init
 
 # This will execute all migrations automatically
-\`\`\`
+```
 
 ### Step 3: Verify Environment Variables
 
@@ -155,24 +155,24 @@ Add all required variables listed in the "Environment Configuration" section abo
 
 #### Option A: Auto-deploy from GitHub (Recommended)
 
-\`\`\`bash
+```bash
 # Commit your changes
 git add .
 git commit -m "Security update: Upgraded to Next.js 15.5.7 and fixed all vulnerabilities"
 git push origin main
 
 # Vercel will automatically trigger a deployment
-\`\`\`
+```
 
 #### Option B: Manual deploy using Vercel CLI
 
-\`\`\`bash
+```bash
 # Install Vercel CLI
 npm i -g vercel
 
 # Deploy
 vercel --prod
-\`\`\`
+```
 
 ### Step 5: Post-Deployment Verification
 
@@ -273,7 +273,7 @@ All API routes and middleware are compatible with Vercel's Edge Runtime for:
 
 ### Build Scripts
 
-\`\`\`bash
+```bash
 # Development
 npm run dev
 
@@ -293,7 +293,7 @@ npm run lint:fix
 # Code formatting
 npm run format
 npm run format:check
-\`\`\`
+```
 
 ---
 
@@ -316,7 +316,7 @@ npm run format:check
 
 To keep dependencies up-to-date:
 
-\`\`\`bash
+```bash
 # Check for outdated packages
 npm outdated
 
@@ -326,7 +326,7 @@ npm update
 # Or use npm-check-updates
 npx npm-check-updates -u
 npm install
-\`\`\`
+```
 
 ### Security Monitoring
 
@@ -335,13 +335,13 @@ Monitor security advisories:
 - [Supabase Status](https://status.supabase.com/)
 - [npm Audit](https://docs.npmjs.com/cli/v9/commands/npm-audit)
 
-\`\`\`bash
+```bash
 # Run security audit
 npm audit
 
 # Fix vulnerabilities automatically
 npm audit fix
-\`\`\`
+```
 
 ---
 

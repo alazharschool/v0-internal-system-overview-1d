@@ -12,7 +12,7 @@ This guide explains how to initialize your Al-Azhar Online School database using
 
 Add these variables to your `.env.local` file (never commit to git):
 
-\`\`\`env
+```env
 # Supabase Connection (Public)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
@@ -20,7 +20,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 # Supabase Connection (Server-side only - DO NOT EXPOSE)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
-\`\`\`
+```
 
 ### How to Find These Values:
 
@@ -40,16 +40,16 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
 Run the migration script in your terminal:
 
-\`\`\`bash
+```bash
 # Development
 npm run supabase:migrate:dev
 
 # Production
 npm run supabase:migrate
-\`\`\`
+```
 
 You should see output like:
-\`\`\`
+```
 ╔════════════════════════════════════════════╗
 ║     Supabase Migration Runner              ║
 ║     Al-Azhar Online School System          ║
@@ -62,7 +62,7 @@ You should see output like:
 ...
 [12:35:02] ✓ All migrations completed successfully ✓
 ✓ Database is ready to use!
-\`\`\`
+```
 
 ## Step 3: Verify the Setup
 
@@ -118,7 +118,7 @@ The migration is **idempotent**, meaning you can run it multiple times safely:
 
 For automated deployment with GitHub Actions:
 
-\`\`\`yaml
+```yaml
 # .github/workflows/deploy.yml
 name: Deploy
 on: [push]
@@ -136,7 +136,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-\`\`\`
+```
 
 ## Next Steps
 

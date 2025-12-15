@@ -64,35 +64,35 @@ A comprehensive educational management system built with Next.js, TypeScript, an
 ### Installation
 
 1. Clone the repository:
-\`\`\`bash
+```bash
 git clone https://github.com/your-username/alazhar-school-system.git
 cd alazhar-school-system
-\`\`\`
+```
 
 2. Install dependencies:
-\`\`\`bash
+```bash
 npm install
 # or
 yarn install
-\`\`\`
+```
 
 3. Set up environment variables:
-\`\`\`bash
+```bash
 cp .env.example .env.local
-\`\`\`
+```
 
 4. Configure your environment variables in `.env.local`:
-\`\`\`env
+```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-\`\`\`
+```
 
 5. Run the development server:
-\`\`\`bash
+```bash
 npm run dev
 # or
 yarn dev
-\`\`\`
+```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
@@ -118,7 +118,7 @@ The system uses the following main tables:
 
 ## Project Structure
 
-\`\`\`
+```
 ├── app/                    # Next.js app directory
 │   ├── (dashboard)/       # Dashboard layout group
 │   ├── api/               # API routes
@@ -136,7 +136,7 @@ The system uses the following main tables:
 ├── utils/                # Utility functions
 ├── scripts/              # Database scripts
 └── public/               # Static assets
-\`\`\`
+```
 
 ## Key Components
 

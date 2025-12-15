@@ -9,11 +9,11 @@
 
 ### 2. **Add Environment Variables**
    Navigate to the **Vars** section in the left sidebar and add:
-   \`\`\`
+   ```
    NEXT_PUBLIC_SUPABASE_URL=your_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   \`\`\`
+   ```
 
 ### 3. **Initialize Database**
    - Navigate to `/setup` page
@@ -46,15 +46,15 @@
 ## API Endpoints
 
 ### Initialize Database
-\`\`\`bash
+```bash
 POST /api/db/init
-\`\`\`
+```
 Creates all tables and seeds sample data
 
 ### Check Connection Status
-\`\`\`bash
+```bash
 GET /api/db/status
-\`\`\`
+```
 Returns database status and student count
 
 ## Troubleshooting

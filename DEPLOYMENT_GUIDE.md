@@ -22,14 +22,14 @@
 6. Verify success messages appear in the results panel
 
 Expected output:
-\`\`\`
+```
 ✅ Database setup complete!
 ✅ Created 8 tables with indexes, triggers, and RLS policies
 ✅ Inserted 5 teachers
 ✅ Inserted 30 students
 ✅ Inserted 150 daily classes
 ...
-\`\`\`
+```
 
 ### STEP 2: Create Admin User
 
@@ -45,15 +45,15 @@ Expected output:
 
 Ensure these are set in your Vercel project (or .env.local for local development):
 
-\`\`\`env
+```env
 NEXT_PUBLIC_SUPABASE_URL=https://qumeveerinufukgpbcyk.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1bWV2ZWVyaW51ZnVrZ3BiY3lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzMzI1NzQsImV4cCI6MjA4MDkwODU3NH0.hrhAj0fgXr2Q_WV6Y8AYzMMuomgJ5IrtaZZ3KcL3G8U
 SUPABASE_URL=https://qumeveerinufukgpbcyk.supabase.co
-\`\`\`
+```
 
 ### STEP 4: Deploy to Vercel
 
-\`\`\`bash
+```bash
 # Option A: Via Vercel CLI
 vercel --prod
 
@@ -61,7 +61,7 @@ vercel --prod
 git add .
 git commit -m "Complete system setup with database and auth"
 git push origin main
-\`\`\`
+```
 
 ### STEP 5: Test the System
 

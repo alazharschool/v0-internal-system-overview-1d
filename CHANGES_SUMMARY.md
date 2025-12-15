@@ -80,29 +80,29 @@ All @radix-ui/* packages updated to latest stable versions:
 ### 1. Environment Variables
 
 **New `.env.local` structure:**
-\`\`\`env
+```env
 NEXT_PUBLIC_SUPABASE_URL=https://qumeveerinufukgpbcyk.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 SUPABASE_SERVICE_ROLE_KEY=  # ⚠️ Required - add manually
-\`\`\`
+```
 
 **Action Required:** Add `SUPABASE_SERVICE_ROLE_KEY` from Supabase Dashboard
 
 ### 2. Supabase Client Updates
 
 **Before:**
-\`\`\`typescript
+```typescript
 // Old pattern with singleton
 export const supabaseClient = createClient()
-\`\`\`
+```
 
 **After:**
-\`\`\`typescript
+```typescript
 // Modern SSR pattern - no singleton
 export function createClient() {
   return createBrowserClient(...)
 }
-\`\`\`
+```
 
 ### 3. Package Scripts
 
@@ -158,13 +158,13 @@ export function createClient() {
 ### Build Configuration
 
 **next.config.mjs:**
-\`\`\`javascript
+```javascript
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
 }
-\`\`\`
+```
 
 ### Deployment Steps
 
