@@ -1,10 +1,9 @@
 "use client"
 
-import type React from "react"
-import Link from "next/link"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -26,7 +25,7 @@ export default function LoginPage() {
     setLoading(true)
 
     if (!email || !password) {
-      setError("Please enter both email and password")
+      setError("⚠ Please enter both email and password")
       setLoading(false)
       return
     }
@@ -40,40 +39,31 @@ export default function LoginPage() {
       })
 
       if (signInError) {
-        console.error("[v0] Supabase login error:", {
-          message: signInError.message,
-          status: signInError.status,
-          type: signInError.name,
-        })
+        console.error("[v0] Supabase login error:", signInError)
         setError(
           signInError.message === "Invalid login credentials"
-            ? "Invalid email or password. Please check your credentials. If this is your first time, contact the administrator to create an admin account."
-            : signInError.message,
+            ? "⚠ Invalid email or password. Please check your credentials or create an Admin account if this is your first time."
+            : `⚠ ${signInError.message}`
         )
         return
       }
 
-      if (data?.user) {
-        console.log("[v0] Login successful, user:", data.user.email)
-
-        const userRole = data.user.user_metadata?.role || data.user.user_metadata?.is_admin
-
-        if (userRole === "admin" || data.user.email === "admin@alazhar.school") {
-          // Redirect to dashboard only for admin
-          router.push("/")
-          router.refresh()
-        } else {
-          setError("Access denied. Only administrators can access this system.")
-          // Sign out the non-admin user immediately
-          await supabase.auth.signOut()
-          return
-        }
-      } else {
-        setError("Failed to sign in. Please try again.")
+      if (!data?.user) {
+        setError("⚠ Failed to sign in. No user returned from Supabase.")
+        return
       }
-    } catch (err) {
+
+      // ✅ التحقق فقط من البريد للأدمن
+      if (data.user.email === "admin@alazhar.school") {
+        router.push("/")
+        router.refresh()
+      } else {
+        setError("⚠ Access denied. Only administrators can access this system.")
+        await supabase.auth.signOut()
+      }
+    } catch (err: any) {
       console.error("[v0] Unexpected login error:", err)
-      setError("An unexpected error occurred. Please try again later.")
+      setError("⚠ Unexpected error occurred. Check your internet connection or Supabase setup.")
     } finally {
       setLoading(false)
     }
@@ -107,7 +97,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@alazhar.school"
+                placeholder="Enter your admin email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
@@ -135,9 +125,6 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 p-3 bg-amber-50 rounded-lg text-sm text-amber-800">
-            <p className="font-semibold mb-1">Demo Credentials:</p>
-            <p>Email: admin@alazhar.school</p>
-            <p>Password: mbanora1983</p>
             <p className="mt-2 text-xs">
               <Link href="/setup-wizard" className="text-blue-600 hover:underline font-semibold">
                 First time? Follow the Setup Wizard
