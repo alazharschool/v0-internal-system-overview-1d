@@ -50,6 +50,18 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (isProtectedPath && user) {
+    const userRole = user.user_metadata?.role || user.user_metadata?.is_admin
+    const isAdmin = userRole === "admin" || user.email === "admin@alazhar.school"
+
+    if (!isAdmin) {
+      console.warn(`[v0] Unauthorized access attempt by non-admin user: ${user.email}`)
+      const url = request.nextUrl.clone()
+      url.pathname = "/login"
+      return NextResponse.redirect(url)
+    }
+  }
+
   if (request.nextUrl.pathname === "/login" && user) {
     const url = request.nextUrl.clone()
     url.pathname = "/"

@@ -27,6 +27,17 @@ export async function signInAdmin(email: string, password: string) {
       })
     }
 
+    // Check if the user is an admin
+    const userRole = data.user?.user_metadata?.role || data.user?.user_metadata?.is_admin
+    const isAdmin = userRole === "admin" || data.user?.email === "admin@alazhar.school"
+
+    if (!isAdmin) {
+      return {
+        success: false,
+        error: "Access denied. Only administrators can sign in.",
+      }
+    }
+
     return { success: true, user: data.user }
   } catch (error) {
     console.error("Auth error:", error)

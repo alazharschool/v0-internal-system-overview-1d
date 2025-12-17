@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -39,16 +40,34 @@ export default function LoginPage() {
       })
 
       if (signInError) {
-        console.error("[v0] Supabase login error:", signInError)
-        setError("Invalid login credentials. Please check your email and password.")
+        console.error("[v0] Supabase login error:", {
+          message: signInError.message,
+          status: signInError.status,
+          type: signInError.name,
+        })
+        setError(
+          signInError.message === "Invalid login credentials"
+            ? "Invalid email or password. Please check your credentials. If this is your first time, contact the administrator to create an admin account."
+            : signInError.message,
+        )
         return
       }
 
       if (data?.user) {
         console.log("[v0] Login successful, user:", data.user.email)
-        // Redirect to dashboard
-        router.push("/")
-        router.refresh()
+
+        const userRole = data.user.user_metadata?.role || data.user.user_metadata?.is_admin
+
+        if (userRole === "admin" || data.user.email === "admin@alazhar.school") {
+          // Redirect to dashboard only for admin
+          router.push("/")
+          router.refresh()
+        } else {
+          setError("Access denied. Only administrators can access this system.")
+          // Sign out the non-admin user immediately
+          await supabase.auth.signOut()
+          return
+        }
       } else {
         setError("Failed to sign in. Please try again.")
       }
@@ -119,6 +138,11 @@ export default function LoginPage() {
             <p className="font-semibold mb-1">Demo Credentials:</p>
             <p>Email: admin@alazhar.school</p>
             <p>Password: mbanora1983</p>
+            <p className="mt-2 text-xs">
+              <Link href="/setup-wizard" className="text-blue-600 hover:underline font-semibold">
+                First time? Follow the Setup Wizard
+              </Link>
+            </p>
           </div>
         </CardContent>
       </Card>

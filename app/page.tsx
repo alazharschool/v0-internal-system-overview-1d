@@ -10,7 +10,6 @@ import { Users, GraduationCap, Calendar, BookOpen, Edit, Clock, AlertCircle } fr
 import Link from "next/link"
 import { dashboardAPI, classesAPI, trialClassesAPI, type Class, type DashboardStats } from "@/lib/database"
 import { formatTime12Hour, getCurrentDateTime } from "@/utils/time-format"
-import { redirect } from "next/navigation"
 import { EditClassModal } from "@/components/modals/edit-class-modal"
 import { useToast } from "@/hooks/use-toast"
 
@@ -402,8 +401,4 @@ export default function DashboardPage() {
       />
     </div>
   )
-}
-
-export function RootPage() {
-  redirect("/dashboard")
 }
