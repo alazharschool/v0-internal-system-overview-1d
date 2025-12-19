@@ -1,6 +1,6 @@
 # Neon Database Configuration
 # Recommended for most uses (with connection pooling)
-NEON_NEON_NEON_NEON_DATABASE_URL="postgresql://neondb_owner:npg_PxBmQh8tAz1w@ep-crimson-tooth-adgo91h0-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+NEON_NEON_NEON_NEON_DATABASE_URL=
 
 # For uses requiring a connection without pgbouncer (for migrations)
 DATABASE_URL_UNPOOLED="postgresql://neondb_owner:npg_PxBmQh8tAz1w@ep-crimson-tooth-adgo91h0.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
@@ -27,9 +27,9 @@ NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY="pck_b1rvkh5sskcdbw855e7jkxcdjnahws2mqp
 STACK_SECRET_SERVER_KEY="ssk_8m544mx4sztqdgvhhm2cjr3kyfasv4t2jgx7rhxx5psvg"
 
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://cbzoqazrubkitotcqawp.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8"
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
 # App Configuration
 NEXT_PUBLIC_APP_NAME="Al-Azhar Online School"
@@ -69,6 +69,6 @@ NODE_ENV="production"
 
 # Note: Replace all placeholder values with your actual credentials
 # Never commit this file to version control
-NEXT_PUBLIC_SUPABASE_URL=https://cbzoqazrubkitotcqawp.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiem9xYXpydWJraXRvdGNxYXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMDUwOTYsImV4cCI6MjA3NTc4MTA5Nn0.ffqzkNDPykgQdmGT5UYZfeTfrC6DNqb34NCcyQs3Dk8
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_KEY=
