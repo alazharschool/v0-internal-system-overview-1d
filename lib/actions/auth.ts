@@ -14,7 +14,10 @@ export async function signInAdmin(email: string, password: string) {
       password,
     })
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      console.error("[v0] Supabase login error:", error.message)
+      throw new Error(error.message)
+    }
 
     // Store session in cookies
     const cookieStore = await cookies()

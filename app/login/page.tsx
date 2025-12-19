@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -10,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, GraduationCap, Loader2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { signInAdmin } from "@/lib/actions/auth"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -31,36 +33,16 @@ export default function LoginPage() {
     }
 
     try {
-      const supabase = createClient()
+      const result = await signInAdmin(email, password)
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (signInError) {
-        console.error("[v0] Supabase login error:", signInError)
-        setError(
-          signInError.message === "Invalid login credentials"
-            ? "⚠ Invalid email or password. Please check your credentials or create an Admin account if this is your first time."
-            : `⚠ ${signInError.message}`
-        )
+      if (!result.success) {
+        setError(`⚠ ${result.error}`)
+        setLoading(false)
         return
       }
 
-      if (!data?.user) {
-        setError("⚠ Failed to sign in. No user returned from Supabase.")
-        return
-      }
-
-      // ✅ التحقق فقط من البريد للأدمن
-      if (data.user.email === "admin@alazhar.school") {
-        router.push("/")
-        router.refresh()
-      } else {
-        setError("⚠ Access denied. Only administrators can access this system.")
-        await supabase.auth.signOut()
-      }
+      router.push("/")
+      router.refresh()
     } catch (err: any) {
       console.error("[v0] Unexpected login error:", err)
       setError("⚠ Unexpected error occurred. Check your internet connection or Supabase setup.")

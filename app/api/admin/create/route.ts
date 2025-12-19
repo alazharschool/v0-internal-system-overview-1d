@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       user_metadata: {
         role: "admin",
         is_admin: true,
+        full_name: "مدير النظام",
       },
     })
 
