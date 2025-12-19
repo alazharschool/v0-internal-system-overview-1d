@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { supabaseServer } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "NEXT_PUBLIC_SUPABASE_URL is not configured" }, { status: 500 })
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const supabase = supabaseServer
 
     const adminEmail = "admin@alazhar.school"
     const adminPassword = "mbanora1983"
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       email_confirm: true,
       user_metadata: {
         role: "admin",
-        is_admin: true,
         full_name: "مدير النظام",
       },
     })

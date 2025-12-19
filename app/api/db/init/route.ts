@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { supabaseServer } from "@/lib/supabase/server"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const supabase = supabaseServer
 
     console.log("[v0] Starting database initialization...")
 

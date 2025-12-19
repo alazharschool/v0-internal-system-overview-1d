@@ -1,19 +1,20 @@
-import { supabaseServer } from "./server"
+import { createClient } from "./server"
 
 export async function initializeDatabase() {
   try {
+    const supabase = await createClient()
     // Create students table
-    await supabaseServer.rpc("create_students_table").catch(() => {})
+    await supabase.rpc("create_students_table").catch(() => {})
     // Create teachers table
-    await supabaseServer.rpc("create_teachers_table").catch(() => {})
+    await supabase.rpc("create_teachers_table").catch(() => {})
     // Create lessons table
-    await supabaseServer.rpc("create_lessons_table").catch(() => {})
+    await supabase.rpc("create_lessons_table").catch(() => {})
     // Create attendance table
-    await supabaseServer.rpc("create_attendance_table").catch(() => {})
+    await supabase.rpc("create_attendance_table").catch(() => {})
     // Create invoices table
-    await supabaseServer.rpc("create_invoices_table").catch(() => {})
+    await supabase.rpc("create_invoices_table").catch(() => {})
     // Create certificates table
-    await supabaseServer.rpc("create_certificates_table").catch(() => {})
+    await supabase.rpc("create_certificates_table").catch(() => {})
 
     console.log("Database initialized successfully")
     return { success: true }
@@ -25,6 +26,7 @@ export async function initializeDatabase() {
 
 export async function seedDatabase() {
   try {
+    const supabase = await createClient()
     // Seed sample teachers
     const teachers = [
       {
@@ -58,7 +60,7 @@ export async function seedDatabase() {
     ]
 
     for (const teacher of teachers) {
-      await supabaseServer
+      await supabase
         .from("teachers")
         .insert([
           {

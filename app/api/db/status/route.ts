@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { supabaseServer } from "@/lib/supabase/server"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       )
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = supabaseServer
 
     // Try to fetch from a table to verify connection
     const { count, error } = await supabase.from("students").select("*", { count: "exact", head: true })

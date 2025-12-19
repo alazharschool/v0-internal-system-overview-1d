@@ -1,9 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { createClient } from "@/lib/supabase/client"
 
 // ===========================
 // TYPE DEFINITIONS
@@ -136,6 +131,7 @@ export interface Course {
 export const studentsAPI = {
   async getAll(): Promise<Student[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("students").select("*").order("created_at", { ascending: false })
 
       if (error) throw error
@@ -148,6 +144,7 @@ export const studentsAPI = {
 
   async getById(id: string): Promise<Student | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("students").select("*").eq("id", id).single()
 
       if (error) throw error
@@ -160,6 +157,7 @@ export const studentsAPI = {
 
   async create(student: Omit<Student, "id" | "created_at" | "updated_at">): Promise<Student | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("students")
         .insert([
@@ -182,6 +180,7 @@ export const studentsAPI = {
 
   async update(id: string, updates: Partial<Student>): Promise<Student | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("students")
         .update({
@@ -202,6 +201,7 @@ export const studentsAPI = {
 
   async delete(id: string): Promise<boolean> {
     try {
+      const supabase = createClient()
       const { error } = await supabase.from("students").delete().eq("id", id)
       if (error) throw error
       return true
@@ -218,6 +218,7 @@ export const studentsAPI = {
 export const teachersAPI = {
   async getAll(): Promise<Teacher[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("teachers").select("*").order("created_at", { ascending: false })
 
       if (error) throw error
@@ -230,6 +231,7 @@ export const teachersAPI = {
 
   async getById(id: string): Promise<Teacher | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("teachers").select("*").eq("id", id).single()
 
       if (error) throw error
@@ -242,6 +244,7 @@ export const teachersAPI = {
 
   async create(teacher: Omit<Teacher, "id" | "created_at" | "updated_at">): Promise<Teacher | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("teachers")
         .insert([
@@ -264,6 +267,7 @@ export const teachersAPI = {
 
   async update(id: string, updates: Partial<Teacher>): Promise<Teacher | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("teachers")
         .update({
@@ -284,6 +288,7 @@ export const teachersAPI = {
 
   async delete(id: string): Promise<boolean> {
     try {
+      const supabase = createClient()
       const { error } = await supabase.from("teachers").delete().eq("id", id)
       if (error) throw error
       return true
@@ -300,6 +305,7 @@ export const teachersAPI = {
 export const lessonsAPI = {
   async getAll(): Promise<Lesson[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("lessons").select("*").order("lesson_date", { ascending: false })
 
       if (error) throw error
@@ -312,6 +318,7 @@ export const lessonsAPI = {
 
   async getTodayLessons(): Promise<Lesson[]> {
     try {
+      const supabase = createClient()
       const today = new Date().toISOString().split("T")[0]
       const { data, error } = await supabase
         .from("lessons")
@@ -329,6 +336,7 @@ export const lessonsAPI = {
 
   async create(lesson: Omit<Lesson, "id" | "created_at" | "updated_at">): Promise<Lesson | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("lessons")
         .insert([
@@ -351,6 +359,7 @@ export const lessonsAPI = {
 
   async update(id: string, updates: Partial<Lesson>): Promise<Lesson | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("lessons")
         .update({
@@ -376,6 +385,7 @@ export const lessonsAPI = {
 export const attendanceAPI = {
   async getByStudent(studentId: string, month: string): Promise<Attendance[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("attendance")
         .select("*")
@@ -393,6 +403,7 @@ export const attendanceAPI = {
 
   async update(id: string, status: "present" | "absent" | "no_lesson"): Promise<Attendance | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("attendance")
         .update({ status, updated_at: new Date().toISOString() })
@@ -415,6 +426,7 @@ export const attendanceAPI = {
 export const invoicesAPI = {
   async getByStudent(studentId: string): Promise<Invoice[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("invoices")
         .select("*")
@@ -431,6 +443,7 @@ export const invoicesAPI = {
 
   async create(invoice: Omit<Invoice, "id" | "created_at" | "updated_at">): Promise<Invoice | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("invoices")
         .insert([
@@ -453,6 +466,7 @@ export const invoicesAPI = {
 
   async updateStatus(id: string, status: "paid" | "unpaid" | "overdue"): Promise<Invoice | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("invoices")
         .update({ status, updated_at: new Date().toISOString() })
@@ -475,6 +489,7 @@ export const invoicesAPI = {
 export const certificatesAPI = {
   async getByStudent(studentId: string): Promise<Certificate[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("certificates")
         .select("*")
@@ -491,6 +506,7 @@ export const certificatesAPI = {
 
   async create(certificate: Omit<Certificate, "id" | "created_at" | "updated_at">): Promise<Certificate | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("certificates")
         .insert([
@@ -518,6 +534,7 @@ export const certificatesAPI = {
 export const classesAPI = {
   async getAll(): Promise<Class[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("classes").select("*").order("class_date", { ascending: false })
 
       if (error) throw error
@@ -530,6 +547,7 @@ export const classesAPI = {
 
   async getById(id: string): Promise<Class | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("classes").select("*").eq("id", id).single()
 
       if (error) throw error
@@ -542,6 +560,7 @@ export const classesAPI = {
 
   async create(classData: Omit<Class, "id" | "created_at" | "updated_at">): Promise<Class | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("classes")
         .insert([
@@ -572,6 +591,7 @@ export const classesAPI = {
 
   async update(id: string, updates: Partial<Class>): Promise<Class | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("classes")
         .update({
@@ -592,6 +612,7 @@ export const classesAPI = {
 
   async delete(id: string): Promise<boolean> {
     try {
+      const supabase = createClient()
       const { error } = await supabase.from("classes").delete().eq("id", id)
       if (error) throw error
       return true
@@ -608,6 +629,7 @@ export const classesAPI = {
 export const trialClassesAPI = {
   async getAll(): Promise<TrialClass[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("trial_classes").select("*").order("created_at", { ascending: false })
 
       if (error) throw error
@@ -620,6 +642,7 @@ export const trialClassesAPI = {
 
   async create(trialClass: Omit<TrialClass, "id" | "created_at" | "updated_at">): Promise<TrialClass | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("trial_classes")
         .insert([
@@ -642,6 +665,7 @@ export const trialClassesAPI = {
 
   async update(id: string, updates: Partial<TrialClass>): Promise<TrialClass | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("trial_classes")
         .update({
@@ -662,6 +686,7 @@ export const trialClassesAPI = {
 
   async delete(id: string): Promise<boolean> {
     try {
+      const supabase = createClient()
       const { error } = await supabase.from("trial_classes").delete().eq("id", id)
       if (error) throw error
       return true
@@ -678,6 +703,7 @@ export const trialClassesAPI = {
 export const dashboardAPI = {
   async getStats(): Promise<DashboardStats> {
     try {
+      const supabase = createClient()
       const [studentsData, teachersData, lessonsData, invoicesData] = await Promise.all([
         supabase.from("students").select("id"),
         supabase.from("teachers").select("id"),
@@ -720,6 +746,7 @@ export const dashboardAPI = {
 export const coursesAPI = {
   async getAll(): Promise<Course[]> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("courses").select("*").order("created_at", { ascending: false })
 
       if (error) throw error
@@ -732,6 +759,7 @@ export const coursesAPI = {
 
   async getById(id: string): Promise<Course | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("courses").select("*").eq("id", id).single()
 
       if (error) throw error
@@ -744,6 +772,7 @@ export const coursesAPI = {
 
   async create(course: Omit<Course, "id" | "created_at" | "updated_at">): Promise<Course | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("courses")
         .insert([
@@ -766,6 +795,7 @@ export const coursesAPI = {
 
   async update(id: string, updates: Partial<Course>): Promise<Course | null> {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("courses")
         .update({
@@ -786,6 +816,7 @@ export const coursesAPI = {
 
   async delete(id: string): Promise<boolean> {
     try {
+      const supabase = createClient()
       const { error } = await supabase.from("courses").delete().eq("id", id)
       if (error) throw error
       return true

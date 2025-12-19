@@ -52,10 +52,10 @@ export async function updateSession(request: NextRequest) {
 
   if (isProtectedPath && user) {
     const userRole = user.user_metadata?.role || user.user_metadata?.is_admin
-    const isAdmin = userRole === "admin" || user.email === "admin@alazhar.school"
+    const isAdmin = userRole === "admin"
 
     if (!isAdmin) {
-      console.warn(`[v0] Unauthorized access attempt by non-admin user: ${user.email}`)
+      console.warn(`[v0] Unauthorized access attempt by non-admin user`)
       const url = request.nextUrl.clone()
       url.pathname = "/login"
       return NextResponse.redirect(url)
