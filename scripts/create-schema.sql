@@ -1,4 +1,28 @@
--- Create students table
+-- ===========================
+-- 1️⃣ Drop old tables (اختياري لو عايز تبدأ من جديد)
+-- ===========================
+DROP TABLE IF EXISTS attendance, lessons, certificates, invoices, payments, trial_classes, classes, courses, students, teachers CASCADE;
+
+-- ===========================
+-- 2️⃣ Create teachers table
+-- ===========================
+CREATE TABLE IF NOT EXISTS teachers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT,
+  country TEXT,
+  specialization TEXT,
+  hourly_rate DECIMAL,
+  assigned_students UUID[],
+  monthly_salary DECIMAL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================
+-- 3️⃣ Create students table
+-- ===========================
 CREATE TABLE IF NOT EXISTS students (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -16,22 +40,9 @@ CREATE TABLE IF NOT EXISTS students (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create teachers table
-CREATE TABLE IF NOT EXISTS teachers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  phone TEXT,
-  country TEXT,
-  specialization TEXT,
-  hourly_rate DECIMAL,
-  assigned_students UUID[],
-  monthly_salary DECIMAL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create classes table
+-- ===========================
+-- 4️⃣ Create classes table
+-- ===========================
 CREATE TABLE IF NOT EXISTS classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -47,7 +58,9 @@ CREATE TABLE IF NOT EXISTS classes (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create trial_classes table
+-- ===========================
+-- 5️⃣ Create trial_classes table
+-- ===========================
 CREATE TABLE IF NOT EXISTS trial_classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_name TEXT NOT NULL,
@@ -64,7 +77,9 @@ CREATE TABLE IF NOT EXISTS trial_classes (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create payments table
+-- ===========================
+-- 6️⃣ Create payments table
+-- ===========================
 CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -77,7 +92,9 @@ CREATE TABLE IF NOT EXISTS payments (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create invoices table
+-- ===========================
+-- 7️⃣ Create invoices table
+-- ===========================
 CREATE TABLE IF NOT EXISTS invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -89,7 +106,9 @@ CREATE TABLE IF NOT EXISTS invoices (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create certificates table
+-- ===========================
+-- 8️⃣ Create certificates table
+-- ===========================
 CREATE TABLE IF NOT EXISTS certificates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -100,7 +119,9 @@ CREATE TABLE IF NOT EXISTS certificates (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create courses table
+-- ===========================
+-- 9️⃣ Create courses table
+-- ===========================
 CREATE TABLE IF NOT EXISTS courses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -114,7 +135,9 @@ CREATE TABLE IF NOT EXISTS courses (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create attendance table
+-- ===========================
+-- 🔟 Create attendance table
+-- ===========================
 CREATE TABLE IF NOT EXISTS attendance (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   lesson_id UUID REFERENCES classes(id) ON DELETE CASCADE,
@@ -125,7 +148,9 @@ CREATE TABLE IF NOT EXISTS attendance (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create lessons table (alias for classes if needed)
+-- ===========================
+-- 1️⃣1️⃣ Create lessons table
+-- ===========================
 CREATE TABLE IF NOT EXISTS lessons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -138,14 +163,16 @@ CREATE TABLE IF NOT EXISTS lessons (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for better query performance
-CREATE INDEX idx_classes_student_id ON classes(student_id);
-CREATE INDEX idx_classes_teacher_id ON classes(teacher_id);
-CREATE INDEX idx_classes_class_date ON classes(class_date);
-CREATE INDEX idx_trial_classes_date ON trial_classes(date);
-CREATE INDEX idx_payments_student_id ON payments(student_id);
-CREATE INDEX idx_invoices_student_id ON invoices(student_id);
-CREATE INDEX idx_certificates_student_id ON certificates(student_id);
-CREATE INDEX idx_attendance_student_id ON attendance(student_id);
-CREATE INDEX idx_lessons_student_id ON lessons(student_id);
-CREATE INDEX idx_lessons_lesson_date ON lessons(lesson_date);
+-- ===========================
+-- 1️⃣2️⃣ Create Indexes
+-- ===========================
+CREATE INDEX IF NOT EXISTS idx_classes_student_id ON classes(student_id);
+CREATE INDEX IF NOT EXISTS idx_classes_teacher_id ON classes(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_classes_class_date ON classes(class_date);
+CREATE INDEX IF NOT EXISTS idx_trial_classes_date ON trial_classes(date);
+CREATE INDEX IF NOT EXISTS idx_payments_student_id ON payments(student_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_student_id ON invoices(student_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_student_id ON certificates(student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id);
+CREATE INDEX IF NOT EXISTS idx_lessons_student_id ON lessons(student_id);
+CREATE INDEX IF NOT EXISTS idx_lessons_lesson_date ON lessons(lesson_date);
